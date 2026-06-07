@@ -1,9 +1,11 @@
 import express from 'express';
+import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { config } from './config.js';
 import { recordGuest, allGuests, guestStats } from './db.js';
 import { authorizeGuest } from './unifi.js';
+import { signState, verifyState, buildAuthorizeUrl, handleCallback } from './oauth.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -17,20 +19,50 @@ app.use('/static', express.static(join(__dirname, '..', 'public')));
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-// Page du portail : UniFi redirige ici avec id, ap, t, url, ssid en query.
-app.get('/', (req, res) => {
-  const { id, ap, t, url, ssid } = req.query;
-  res.render('login', {
-    config,
-    params: { id, ap, t, url, ssid },
-    error: null,
-  });
+const pickParams = (src) => ({
+  id: src.id,
+  ap: src.ap,
+  t: src.t,
+  url: src.url,
+  ssid: src.ssid,
 });
 
-// Soumission : valide, enregistre l'email, autorise l'invité sur UniFi.
+// Enregistre l'invité, l'autorise sur UniFi puis affiche la page de succès.
+async function finishLogin(res, { params, email, name, method, liked, onError }) {
+  recordGuest({ email, name, method, mac: params.id, apMac: params.ap, ssid: params.ssid, liked });
+
+  if (!params.id) {
+    // Pas de MAC : on ne peut pas autoriser via UniFi (ex. test hors hotspot).
+    return res.render('success', { config, authorized: false, redirectUrl: params.url });
+  }
+  try {
+    await authorizeGuest(params.id, params.ap);
+    res.render('success', { config, authorized: true, redirectUrl: params.url });
+  } catch (err) {
+    console.error("Échec de l'autorisation UniFi :", err.message);
+    onError("Une erreur est survenue lors de la connexion. Merci de réessayer.");
+  }
+}
+
+// Page du portail : UniFi redirige ici avec id, ap, t, url, ssid en query.
+// Affiche le choix de méthode si SmartSchool est activé, sinon le formulaire email.
+app.get('/', (req, res) => {
+  const params = pickParams(req.query);
+  if (config.smartschool.enabled) {
+    return res.render('choice', { config, params });
+  }
+  res.render('login', { config, params, error: null });
+});
+
+// Formulaire email + like Facebook.
+app.get('/login', (req, res) => {
+  res.render('login', { config, params: pickParams(req.query), error: null });
+});
+
+// Soumission email : valide, enregistre, autorise.
 app.post('/authorize', async (req, res) => {
-  const { email, liked, id, ap, t, url, ssid } = req.body;
-  const params = { id, ap, t, url, ssid };
+  const params = pickParams(req.body);
+  const { email, liked } = req.body;
 
   const renderError = (message) =>
     res.status(400).render('login', { config, params, error: message });
@@ -42,19 +74,41 @@ app.post('/authorize', async (req, res) => {
     return renderError('Veuillez confirmer que vous avez liké notre page Facebook.');
   }
 
-  recordGuest({ email, mac: id, apMac: ap, ssid, liked: true });
+  await finishLogin(res, {
+    params, email, name: null, method: 'email', liked: true, onError: renderError,
+  });
+});
 
-  if (!id) {
-    // Pas de MAC : on ne peut pas autoriser via UniFi (ex. test hors hotspot).
-    return res.render('success', { config, authorized: false, redirectUrl: url });
+// --- Connexion SmartSchool (OAuth2) ---
+
+// Redirige vers SmartSchool, en embarquant les paramètres UniFi dans l'état signé.
+app.get('/auth/smartschool', (req, res) => {
+  if (!config.smartschool.enabled) return res.status(404).send('SmartSchool non configuré');
+  const state = signState({ ...pickParams(req.query), n: crypto.randomBytes(8).toString('hex') });
+  res.redirect(buildAuthorizeUrl(state));
+});
+
+// Retour SmartSchool : vérifie l'état, récupère le profil, autorise l'invité.
+app.get('/auth/smartschool/callback', async (req, res) => {
+  if (!config.smartschool.enabled) return res.status(404).send('SmartSchool non configuré');
+
+  const renderError = (message) =>
+    res.status(400).render('login', { config, params: {}, error: message });
+
+  const payload = verifyState(req.query.state);
+  if (!payload || !req.query.code) {
+    return renderError('Connexion SmartSchool invalide ou expirée. Réessayez.');
   }
+  const params = pickParams(payload);
 
   try {
-    await authorizeGuest(id, ap);
-    res.render('success', { config, authorized: true, redirectUrl: url });
+    const { email, name } = await handleCallback(req.query.code);
+    await finishLogin(res, {
+      params, email, name, method: 'smartschool', liked: false, onError: renderError,
+    });
   } catch (err) {
-    console.error('Échec de l\'autorisation UniFi :', err.message);
-    renderError("Une erreur est survenue lors de la connexion. Merci de réessayer.");
+    console.error('Échec OAuth SmartSchool :', err.message);
+    renderError('La connexion SmartSchool a échoué. Réessayez.');
   }
 });
 
@@ -82,10 +136,10 @@ app.get('/admin', requireAdmin, (req, res) => {
 // Export CSV des emails collectés.
 app.get('/admin/export.csv', requireAdmin, (req, res) => {
   const rows = allGuests();
-  const header = 'id,email,mac,ap_mac,ssid,liked,created_at\n';
+  const header = 'id,email,name,method,mac,ap_mac,ssid,liked,created_at\n';
   const csv = rows
     .map((r) =>
-      [r.id, r.email, r.mac, r.ap_mac, r.ssid, r.liked, r.created_at]
+      [r.id, r.email, r.name, r.method, r.mac, r.ap_mac, r.ssid, r.liked, r.created_at]
         .map((v) => `"${String(v ?? '').replace(/"/g, '""')}"`)
         .join(',')
     )

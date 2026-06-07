@@ -12,6 +12,8 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS guests (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
     email       TEXT NOT NULL,
+    name        TEXT,
+    method      TEXT NOT NULL DEFAULT 'email',
     mac         TEXT,
     ap_mac      TEXT,
     ssid        TEXT,
@@ -20,14 +22,23 @@ db.exec(`
   );
 `);
 
+// Migration : ajoute les colonnes name/method aux bases créées avant leur ajout.
+const columns = db.prepare('PRAGMA table_info(guests)').all().map((c) => c.name);
+if (!columns.includes('name')) db.exec('ALTER TABLE guests ADD COLUMN name TEXT');
+if (!columns.includes('method')) {
+  db.exec("ALTER TABLE guests ADD COLUMN method TEXT NOT NULL DEFAULT 'email'");
+}
+
 const insertStmt = db.prepare(`
-  INSERT INTO guests (email, mac, ap_mac, ssid, liked)
-  VALUES (@email, @mac, @ap_mac, @ssid, @liked)
+  INSERT INTO guests (email, name, method, mac, ap_mac, ssid, liked)
+  VALUES (@email, @name, @method, @mac, @ap_mac, @ssid, @liked)
 `);
 
-export function recordGuest({ email, mac, apMac, ssid, liked }) {
+export function recordGuest({ email, name, method, mac, apMac, ssid, liked }) {
   return insertStmt.run({
     email,
+    name: name || null,
+    method: method || 'email',
     mac: mac || null,
     ap_mac: apMac || null,
     ssid: ssid || null,

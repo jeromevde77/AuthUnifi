@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title><%= config.portalName %></title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <%
+    // Reconstruit la query string pour la transmettre aux deux méthodes.
+    const qs = new URLSearchParams(
+      Object.fromEntries(Object.entries(params).filter(([, v]) => v))
+    ).toString();
+    const suffix = qs ? '?' + qs : '';
+  %>
+  <main class="card">
+    <% if (config.portalLogoUrl) { %>
+      <img class="logo" src="<%= config.portalLogoUrl %>" alt="logo" />
+    <% } %>
+    <h1><%= config.portalName %></h1>
+    <p class="subtitle">Choisissez votre méthode de connexion.</p>
+
+    <a class="choice-btn email" href="/login<%= suffix %>">
+      <span class="choice-icon">✉️</span>
+      <span>
+        <strong>Email + Facebook</strong>
+        <small>Inscription rapide par email</small>
+      </span>
+    </a>
+
+    <a class="choice-btn smartschool" href="/auth/smartschool<%= suffix %>">
+      <span class="choice-icon">🎓</span>
+      <span>
+        <strong>Compte SmartSchool</strong>
+        <small>Connexion avec votre identifiant SmartSchool</small>
+      </span>
+    </a>
+  </main>
+</body>
+</html>

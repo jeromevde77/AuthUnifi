@@ -24,6 +24,21 @@ export const config = {
 
   facebookPageUrl: process.env.FACEBOOK_PAGE_URL || 'https://www.facebook.com',
 
+  // OAuth SmartSchool : activé automatiquement si client id/secret sont fournis.
+  smartschool: {
+    clientId: process.env.SMARTSCHOOL_CLIENT_ID || '',
+    clientSecret: process.env.SMARTSCHOOL_CLIENT_SECRET || '',
+    // URL de callback publique (HTTPS) déclarée auprès de SmartSchool.
+    redirectUri: process.env.SMARTSCHOOL_REDIRECT_URI || '',
+    scope: process.env.SMARTSCHOOL_SCOPE || 'userinfo',
+    authorizeUrl: 'https://oauth.smartschool.be/OAuth',
+    tokenUrl: 'https://oauth.smartschool.be/OAuth/index/token',
+    userinfoUrl: 'https://oauth.smartschool.be/Api/V1/userinfo',
+  },
+
+  // Secret pour signer l'état OAuth (anti-CSRF). Par défaut : ADMIN_TOKEN.
+  sessionSecret: process.env.SESSION_SECRET || process.env.ADMIN_TOKEN || 'changeme',
+
   portalName: process.env.PORTAL_NAME || 'Wifi Invité',
   portalLogoUrl: process.env.PORTAL_LOGO_URL || '',
 
@@ -33,3 +48,9 @@ export const config = {
   // Nombre de proxies de confiance devant l'app (reverse-proxy HTTPS).
   trustProxy: parseInt(process.env.TRUST_PROXY || '0', 10),
 };
+
+config.smartschool.enabled = Boolean(
+  config.smartschool.clientId &&
+  config.smartschool.clientSecret &&
+  config.smartschool.redirectUri
+);
