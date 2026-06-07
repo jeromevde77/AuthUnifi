@@ -1,0 +1,22 @@
+{
+  "name": "authunifi",
+  "version": "1.0.0",
+  "description": "Portail captif d'authentification pour UniFi : login par email + like Facebook",
+  "type": "module",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js"
+  },
+  "license": "MIT",
+  "overrides": {
+    "axios": "^1.17.0"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.8.1",
+    "dotenv": "^16.4.7",
+    "ejs": "^3.1.10",
+    "express": "^4.21.2",
+    "node-unifi": "^2.5.1"
+  }
+}

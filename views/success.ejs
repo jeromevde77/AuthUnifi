@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title><%= config.portalName %></title>
+  <link rel="stylesheet" href="/static/styles.css" />
+  <% if (authorized && redirectUrl) { %>
+    <meta http-equiv="refresh" content="3;url=<%= redirectUrl %>" />
+  <% } %>
+</head>
+<body>
+  <main class="card">
+    <div class="check">✓</div>
+    <% if (authorized) { %>
+      <h1>Vous êtes connecté !</h1>
+      <p class="subtitle">Merci. Votre accès à Internet est maintenant actif.</p>
+      <% if (redirectUrl) { %>
+        <p class="subtitle">Redirection en cours…
+          <a href="<%= redirectUrl %>">Continuer</a>
+        </p>
+      <% } %>
+    <% } else { %>
+      <h1>Merci !</h1>
+      <p class="subtitle">Vos informations ont bien été enregistrées.</p>
+    <% } %>
+  </main>
+</body>
+</html>
