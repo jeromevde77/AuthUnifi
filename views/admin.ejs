@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin — <%= config.portalName %></title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body class="admin">
+  <main class="admin-wrap">
+    <header class="admin-head">
+      <h1>Invités collectés</h1>
+      <a class="btn" href="/admin/export.csv">⬇ Export CSV</a>
+    </header>
+
+    <div class="stats">
+      <div class="stat"><span class="stat-num"><%= stats.total %></span><span class="stat-label">Total</span></div>
+      <div class="stat"><span class="stat-num"><%= stats.unique_emails %></span><span class="stat-label">Emails uniques</span></div>
+      <div class="stat"><span class="stat-num"><%= stats.today %></span><span class="stat-label">Aujourd'hui</span></div>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th><th>Email</th><th>MAC</th><th>SSID</th><th>Liké</th><th>Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% if (guests.length === 0) { %>
+            <tr><td colspan="6" class="empty">Aucun invité enregistré pour l'instant.</td></tr>
+          <% } %>
+          <% guests.forEach((g) => { %>
+            <tr>
+              <td><%= g.id %></td>
+              <td><%= g.email %></td>
+              <td class="mono"><%= g.mac || '—' %></td>
+              <td><%= g.ssid || '—' %></td>
+              <td><%= g.liked ? '✓' : '—' %></td>
+              <td class="mono"><%= g.created_at %></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </main>
+</body>
+</html>

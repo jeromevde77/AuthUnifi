@@ -27,5 +27,9 @@ export const config = {
   portalName: process.env.PORTAL_NAME || 'Wifi Invité',
   portalLogoUrl: process.env.PORTAL_LOGO_URL || '',
 
+  adminUser: process.env.ADMIN_USER || 'admin',
   adminToken: process.env.ADMIN_TOKEN || '',
+
+  // Nombre de proxies de confiance devant l'app (reverse-proxy HTTPS).
+  trustProxy: parseInt(process.env.TRUST_PROXY || '0', 10),
 };

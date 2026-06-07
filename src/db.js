@@ -40,3 +40,15 @@ const allStmt = db.prepare('SELECT * FROM guests ORDER BY created_at DESC');
 export function allGuests() {
   return allStmt.all();
 }
+
+const statsStmt = db.prepare(`
+  SELECT
+    COUNT(*) AS total,
+    COUNT(DISTINCT email) AS unique_emails,
+    SUM(CASE WHEN date(created_at) = date('now') THEN 1 ELSE 0 END) AS today
+  FROM guests
+`);
+
+export function guestStats() {
+  return statsStmt.get();
+}

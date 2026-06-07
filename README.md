@@ -63,13 +63,33 @@ Dans **Settings → Guest Hotspot** (ou WiFi invité) :
 > (reverse proxy nginx/Caddy). Les navigateurs et la détection de portail
 > captif fonctionnent plus fiablement en HTTPS.
 
-## Récupérer les emails collectés
+## Administration & emails collectés
 
-```
-GET /admin/export.csv?token=VOTRE_ADMIN_TOKEN
+- **Page d'admin** : `https://votre-portail/admin` — tableau des invités, statistiques
+  (total, emails uniques, aujourd'hui) et bouton d'export.
+  Authentification HTTP : utilisateur `ADMIN_USER`, mot de passe `ADMIN_TOKEN`.
+- **Export CSV** : `GET /admin/export.csv` (ou `?token=ADMIN_TOKEN` pour un accès `curl`).
+
+## Déploiement avec Docker
+
+```bash
+cp .env.example .env   # éditez la config
+docker compose up -d --build
 ```
 
-Renvoie un CSV de tous les invités enregistrés.
+La base SQLite est conservée dans le volume `portal-data`. Le portail écoute sur le
+port 3000 (modifiable dans `docker-compose.yml`).
+
+## HTTPS / reverse-proxy (production)
+
+En production, placez le portail derrière un reverse-proxy HTTPS. Des exemples
+prêts à l'emploi sont fournis dans `deploy/` :
+
+- **Caddy** (`deploy/Caddyfile`) : HTTPS automatique via Let's Encrypt.
+- **nginx** (`deploy/nginx.conf`) : à utiliser avec `certbot`.
+
+Pensez à définir **`TRUST_PROXY=1`** dans le `.env` pour qu'Express interprète
+correctement les en-têtes `X-Forwarded-*` envoyés par le proxy.
 
 ## Stockage
 
@@ -78,10 +98,13 @@ Les données sont dans `data/portal.db` (SQLite). Ce dossier est ignoré par git
 ## Structure
 
 ```
-src/server.js   Routes Express (portail, autorisation, export)
-src/unifi.js    Client API du contrôleur UniFi (authorize-guest)
-src/db.js       Stockage SQLite des emails
-src/config.js   Chargement de la configuration (.env)
-views/          Pages EJS (login, succès)
-public/         CSS
+src/server.js       Routes Express (portail, autorisation, admin, export)
+src/unifi.js        Client API du contrôleur UniFi (authorize-guest)
+src/db.js           Stockage SQLite des emails + statistiques
+src/config.js       Chargement de la configuration (.env)
+views/              Pages EJS (login, succès, admin)
+public/             CSS
+Dockerfile          Image de production (multi-stage)
+docker-compose.yml  Déploiement conteneurisé + volume des données
+deploy/             Exemples reverse-proxy HTTPS (Caddy, nginx)
 ```

@@ -1,0 +1,13 @@
+services:
+  portal:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "3000:3000"
+    volumes:
+      # Conserve la base SQLite des emails entre les redémarrages.
+      - portal-data:/app/data
+
+volumes:
+  portal-data:

@@ -1,0 +1,10 @@
+node_modules
+.env
+data
+*.db
+*.db-journal
+.git
+.gitignore
+npm-debug.log*
+README.md
+deploy

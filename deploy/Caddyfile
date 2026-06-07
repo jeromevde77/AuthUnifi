@@ -1,0 +1,8 @@
+# Caddy gère automatiquement le certificat HTTPS (Let's Encrypt).
+# Remplacez portal.example.com par votre domaine et lancez : caddy run
+#
+# Pensez à définir TRUST_PROXY=1 dans le .env du portail (Caddy est devant).
+
+portal.example.com {
+    reverse_proxy localhost:3000
+}
