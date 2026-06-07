@@ -1,0 +1,26 @@
+# Variante prête à l'emploi pour Synology (Container Manager → Projet).
+#
+# Différences avec docker-compose.yml :
+#  - la base SQLite est dans un dossier local ./data (bind mount), donc visible
+#    et sauvegardable depuis File Station (au lieu d'un volume Docker nommé) ;
+#  - le conteneur tourne en root (user "0:0") pour écrire sans souci dans ce
+#    dossier monté, quel que soit son propriétaire — usage courant sur NAS en LAN.
+#    Si vous préférez le non-root, retirez la ligne `user` et assurez-vous que
+#    ./data appartient à l'UID 1000.
+#
+# Utilisation : placez ce dossier sur le NAS, créez le .env (cp .env.example .env).
+# Container Manager → Projet attend un fichier nommé "docker-compose.yml" : soit
+# vous renommez ce fichier en docker-compose.yml sur le NAS, soit vous collez son
+# contenu lors de la création du projet. Changez "3000:3000" si le port 3000 est
+# déjà pris sur le NAS (ex. "3080:3000").
+
+services:
+  portal:
+    build: .
+    restart: unless-stopped
+    user: "0:0"
+    env_file: .env
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./data:/app/data
