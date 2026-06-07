@@ -45,6 +45,7 @@ function buildProviders() {
     const clientId = process.env[`${up}_CLIENT_ID`] || '';
     const clientSecret = process.env[`${up}_CLIENT_SECRET`] || '';
     const redirectUri = process.env[`${up}_REDIRECT_URI`] || '';
+    const configured = Boolean(clientId && clientSecret && redirectUri);
     out[id] = {
       id,
       ...def,
@@ -52,10 +53,11 @@ function buildProviders() {
       clientSecret,
       redirectUri,
       scope: process.env[`${up}_SCOPE`] || def.scope,
-      // Activé si configuré et non désactivé explicitement (ENABLE_<ID>=false).
-      enabled:
-        Boolean(clientId && clientSecret && redirectUri) &&
-        process.env[`ENABLE_${up}`] !== 'false',
+      // Identifiants présents ?
+      configured,
+      // État par défaut (.env) : configuré et non désactivé via ENABLE_<ID>=false.
+      // Peut être surchargé à chaud depuis le panneau admin.
+      envEnabled: configured && process.env[`ENABLE_${up}`] !== 'false',
     };
   }
   return out;
@@ -75,8 +77,8 @@ export const config = {
 
   authMinutes: parseInt(process.env.AUTH_MINUTES || '480', 10),
 
-  // Méthode email + like Facebook : activée sauf si ENABLE_EMAIL=false.
-  emailEnabled: process.env.ENABLE_EMAIL !== 'false',
+  // Méthode email + like Facebook : état par défaut (surchargeable depuis l'admin).
+  emailEnvEnabled: process.env.ENABLE_EMAIL !== 'false',
   facebookPageUrl: process.env.FACEBOOK_PAGE_URL || 'https://www.facebook.com',
 
   // Fournisseurs OAuth (SmartSchool, Google, Microsoft 365).
@@ -94,6 +96,3 @@ export const config = {
   // Nombre de proxies de confiance devant l'app (reverse-proxy HTTPS).
   trustProxy: parseInt(process.env.TRUST_PROXY || '0', 10),
 };
-
-// Liste des fournisseurs OAuth actifs.
-config.enabledProviders = Object.values(config.providers).filter((p) => p.enabled);

@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      - name: Vérification de syntaxe
+        run: for f in src/*.js; do node --check "$f"; done
+
+      - name: Smoke test (démarrage + page d'accueil)
+        env:
+          UNIFI_HOST: 127.0.0.1
+          UNIFI_USERNAME: ci
+          UNIFI_PASSWORD: ci
+          ADMIN_TOKEN: ci-token
+        run: |
+          node src/server.js &
+          SRV=$!
+          for i in $(seq 1 10); do
+            curl -fsS -o /dev/null http://localhost:3000/ && break
+            sleep 1
+          done
+          curl -fsS -o /dev/null -w "GET / -> %{http_code}\n" http://localhost:3000/
+          curl -fsS -o /dev/null -w "/admin -> %{http_code}\n" -u admin:ci-token http://localhost:3000/admin
+          kill $SRV
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build de l'image Docker
+        run: docker build -t authunifi:ci .

@@ -19,6 +19,25 @@
       <div class="stat"><span class="stat-num"><%= stats.today %></span><span class="stat-label">Aujourd'hui</span></div>
     </div>
 
+    <section class="panel">
+      <h2>Méthodes de connexion</h2>
+      <% if (saved) { %><p class="saved">✓ Enregistré.</p><% } %>
+      <form method="POST" action="/admin/methods">
+        <% methods.forEach((m) => { %>
+          <label class="method-row <%= m.configured ? '' : 'disabled' %>">
+            <input type="checkbox" name="method" value="<%= m.id %>"
+              <%= m.enabled ? 'checked' : '' %> <%= m.configured ? '' : 'disabled' %> />
+            <span class="method-icon"><%= m.icon %></span>
+            <span class="method-label"><%= m.label %></span>
+            <% if (!m.configured) { %>
+              <span class="method-note">identifiants manquants (.env)</span>
+            <% } %>
+          </label>
+        <% }) %>
+        <button type="submit">Enregistrer</button>
+      </form>
+    </section>
+
     <div class="table-wrap">
       <table>
         <thead>

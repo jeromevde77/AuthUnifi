@@ -14,7 +14,7 @@
     <h1><%= config.portalName %></h1>
     <p class="subtitle">Connectez-vous pour accéder à Internet gratuitement.</p>
 
-    <% if (config.enabledProviders.length > 0) {
+    <% if (showBack) {
       const qs = new URLSearchParams(
         Object.fromEntries(Object.entries(params).filter(([, v]) => v))
       ).toString();

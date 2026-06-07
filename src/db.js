@@ -52,6 +52,29 @@ export function allGuests() {
   return allStmt.all();
 }
 
+// --- Réglages clé/valeur (ex. activation des méthodes depuis l'admin) ---
+
+db.exec(`
+  CREATE TABLE IF NOT EXISTS settings (
+    key   TEXT PRIMARY KEY,
+    value TEXT
+  );
+`);
+
+const getSettingStmt = db.prepare('SELECT value FROM settings WHERE key = ?');
+const setSettingStmt = db.prepare(`
+  INSERT INTO settings (key, value) VALUES (@key, @value)
+  ON CONFLICT(key) DO UPDATE SET value = @value
+`);
+
+export function getSetting(key) {
+  return getSettingStmt.get(key)?.value;
+}
+
+export function setSetting(key, value) {
+  setSettingStmt.run({ key, value });
+}
+
 const statsStmt = db.prepare(`
   SELECT
     COUNT(*) AS total,

@@ -6,6 +6,7 @@ import { config } from './config.js';
 import { recordGuest, allGuests, guestStats } from './db.js';
 import { authorizeGuest } from './unifi.js';
 import { signState, verifyState, buildAuthorizeUrl, handleCallback } from './oauth.js';
+import { enabledMethods, isEnabled, listMethods, setEnabled } from './methods.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -32,17 +33,11 @@ const buildQs = (params) =>
     Object.fromEntries(Object.entries(params).filter(([, v]) => v))
   ).toString();
 
-// Liste des méthodes de connexion activées (email + fournisseurs OAuth).
-function enabledMethods() {
-  const methods = [];
-  if (config.emailEnabled) {
-    methods.push({ id: 'email', label: 'Email + Facebook', icon: '✉️', href: '/login' });
-  }
-  for (const p of config.enabledProviders) {
-    methods.push({ id: p.id, label: p.label, icon: p.icon, href: `/auth/${p.id}` });
-  }
-  return methods;
-}
+// Affiche le formulaire email (le lien « retour » n'apparaît que s'il existe un choix).
+const renderLogin = (res, { params, error = null, status = 200 }) =>
+  res.status(status).render('login', {
+    config, params, error, showBack: enabledMethods().length > 1,
+  });
 
 // Enregistre l'invité, l'autorise sur UniFi puis affiche la page de succès.
 async function finishLogin(res, { params, email, name, method, liked, onError }) {
@@ -78,18 +73,17 @@ app.get('/', (req, res) => {
 
 // Formulaire email + like Facebook.
 app.get('/login', (req, res) => {
-  if (!config.emailEnabled) return res.status(404).send('Méthode email désactivée');
-  res.render('login', { config, params: pickParams(req.query), error: null });
+  if (!isEnabled('email')) return res.status(404).send('Méthode email désactivée');
+  renderLogin(res, { params: pickParams(req.query) });
 });
 
 // Soumission email : valide, enregistre, autorise.
 app.post('/authorize', async (req, res) => {
-  if (!config.emailEnabled) return res.status(404).send('Méthode email désactivée');
+  if (!isEnabled('email')) return res.status(404).send('Méthode email désactivée');
   const params = pickParams(req.body);
   const { email, liked } = req.body;
 
-  const renderError = (message) =>
-    res.status(400).render('login', { config, params, error: message });
+  const renderError = (message) => renderLogin(res, { params, error: message, status: 400 });
 
   if (!email || !EMAIL_RE.test(email)) {
     return renderError('Veuillez saisir une adresse email valide.');
@@ -108,7 +102,7 @@ app.post('/authorize', async (req, res) => {
 // Redirige vers le fournisseur, en embarquant les paramètres UniFi dans l'état signé.
 app.get('/auth/:provider', (req, res) => {
   const provider = config.providers[req.params.provider];
-  if (!provider || !provider.enabled) return res.status(404).send('Fournisseur non configuré');
+  if (!provider || !isEnabled(provider.id)) return res.status(404).send('Fournisseur non disponible');
   const state = signState({ ...pickParams(req.query), n: crypto.randomBytes(8).toString('hex') });
   res.redirect(buildAuthorizeUrl(provider, state));
 });
@@ -116,10 +110,9 @@ app.get('/auth/:provider', (req, res) => {
 // Retour OAuth : vérifie l'état, récupère le profil, autorise l'invité.
 app.get('/auth/:provider/callback', async (req, res) => {
   const provider = config.providers[req.params.provider];
-  if (!provider || !provider.enabled) return res.status(404).send('Fournisseur non configuré');
+  if (!provider || !isEnabled(provider.id)) return res.status(404).send('Fournisseur non disponible');
 
-  const renderError = (message) =>
-    res.status(400).render('login', { config, params: {}, error: message });
+  const renderError = (message) => renderLogin(res, { params: {}, error: message, status: 400 });
 
   const payload = verifyState(req.query.state);
   if (!payload || !req.query.code) {
@@ -154,9 +147,21 @@ function requireAdmin(req, res, next) {
   return res.status(401).send('Authentification requise');
 }
 
-// Tableau de bord admin : liste des emails collectés.
+// Tableau de bord admin : méthodes de connexion + emails collectés.
 app.get('/admin', requireAdmin, (req, res) => {
-  res.render('admin', { config, stats: guestStats(), guests: allGuests() });
+  res.render('admin', {
+    config, stats: guestStats(), guests: allGuests(), methods: listMethods(),
+    saved: req.query.saved === '1',
+  });
+});
+
+// Active/désactive les méthodes de connexion (cases cochées = activées).
+app.post('/admin/methods', requireAdmin, (req, res) => {
+  const checked = [].concat(req.body.method || []); // une seule case => string
+  for (const m of listMethods()) {
+    if (m.configured) setEnabled(m.id, checked.includes(m.id));
+  }
+  res.redirect('/admin?saved=1');
 });
 
 // Export CSV des emails collectés.

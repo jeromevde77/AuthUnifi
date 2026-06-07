@@ -65,6 +65,11 @@ Chaque méthode s'active indépendamment :
 La page d'accueil affiche le choix entre les méthodes activées ; s'il n'y en a
 qu'une, elle est utilisée directement.
 
+Les variables `ENABLE_*` ne fixent que **l'état par défaut**. Le **panneau admin**
+(`/admin`) permet d'activer/désactiver chaque méthode déjà configurée **à chaud**,
+sans redémarrer ni éditer le `.env` (l'état est persisté en base). Les identifiants
+OAuth, eux, restent dans le `.env`.
+
 ### Configurer un fournisseur OAuth
 
 Pour chaque fournisseur, renseignez `<NOM>_CLIENT_ID`, `<NOM>_CLIENT_SECRET` et
@@ -109,8 +114,9 @@ Dans **Settings → Guest Hotspot** (ou WiFi invité) :
 
 ## Administration & emails collectés
 
-- **Page d'admin** : `https://votre-portail/admin` — tableau des invités, statistiques
-  (total, emails uniques, aujourd'hui) et bouton d'export.
+- **Page d'admin** : `https://votre-portail/admin` — activation des méthodes de
+  connexion, tableau des invités, statistiques (total, emails uniques, aujourd'hui)
+  et bouton d'export.
   Authentification HTTP : utilisateur `ADMIN_USER`, mot de passe `ADMIN_TOKEN`.
 - **Export CSV** : `GET /admin/export.csv` (ou `?token=ADMIN_TOKEN` pour un accès `curl`).
 
@@ -144,12 +150,14 @@ Les données sont dans `data/portal.db` (SQLite). Ce dossier est ignoré par git
 ```
 src/server.js       Routes Express (choix, login, OAuth, autorisation, admin)
 src/unifi.js        Client API du contrôleur UniFi (authorize-guest)
-src/oauth.js        Flux OAuth2 SmartSchool + état signé (anti-CSRF)
-src/db.js           Stockage SQLite des invités + statistiques
+src/oauth.js        Flux OAuth2 générique + état signé (anti-CSRF)
+src/methods.js      Activation des méthodes (override admin ▸ défaut .env)
+src/db.js           Stockage SQLite (invités, réglages) + statistiques
 src/config.js       Chargement de la configuration (.env)
 views/              Pages EJS (choice, login, succès, admin)
 public/             CSS
 Dockerfile          Image de production (multi-stage)
 docker-compose.yml  Déploiement conteneurisé + volume des données
 deploy/             Exemples reverse-proxy HTTPS (Caddy, nginx)
+.github/workflows/  CI : vérif syntaxe, smoke test, build Docker
 ```
