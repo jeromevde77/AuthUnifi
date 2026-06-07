@@ -130,11 +130,11 @@ docker compose up -d --build
 La base SQLite est conservée dans le volume `portal-data`. Le portail écoute sur le
 port 3000 (modifiable dans `docker-compose.yml`).
 
-**Synology** : utilisez plutôt `docker-compose.synology.yml` (base en bind mount
-`./data` visible depuis File Station, conteneur en root pour éviter les soucis de
-permissions). Dans Container Manager → Projet, renommez-le `docker-compose.yml` ou
-collez son contenu. Pour le HTTPS, le proxy inversé intégré de DSM
-(Portail de connexion → Proxy inversé) suffit — pensez alors à `TRUST_PROXY=1`.
+**Synology** : voir le guide pas à pas dédié **[SYNOLOGY.md](SYNOLOGY.md)**.
+En résumé, utilisez `docker-compose.synology.yml` (base en bind mount `./data`
+visible depuis File Station, conteneur en root pour éviter les soucis de
+permissions) ; dans Container Manager → Projet, renommez-le `docker-compose.yml`.
+Pour le HTTPS, le proxy inversé intégré de DSM suffit — pensez alors à `TRUST_PROXY=1`.
 
 ## HTTPS / reverse-proxy (production)
 
