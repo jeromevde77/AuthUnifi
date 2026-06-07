@@ -1,14 +1,15 @@
 # AuthUnifi — Portail captif pour UniFi
 
 Portail captif (hotspot public) pour contrôleurs **UniFi**. L'invité peut se
-connecter de **deux façons** :
+connecter via **plusieurs méthodes**, chacune activable/désactivable :
 
-1. **Email + like Facebook** — saisie de l'email et invitation à liker une page.
-2. **Compte SmartSchool (OAuth2)** — connexion avec son identifiant SmartSchool
-   (optionnel ; activé seulement si configuré).
+- **Email + like Facebook** — saisie de l'email et invitation à liker une page.
+- **OAuth2** — connexion via **SmartSchool**, **Google** ou **Microsoft 365**.
 
-Les deux méthodes aboutissent à l'autorisation de l'invité sur le contrôleur UniFi.
-Si SmartSchool n'est pas configuré, le portail affiche directement le formulaire email.
+Toutes les méthodes aboutissent à l'autorisation de l'invité sur le contrôleur UniFi.
+
+Une **page de choix** liste les méthodes activées. S'il n'y en a qu'une seule, le
+portail y redirige directement (pas d'écran de choix). Voir « Méthodes de connexion ».
 
 ## Comment ça marche
 
@@ -50,28 +51,39 @@ Le serveur démarre sur `http://0.0.0.0:3000` (configurable via `PORT`).
 | `FACEBOOK_PAGE_URL` | URL de la page à liker |
 | `ADMIN_TOKEN` | Jeton pour l'export CSV des emails |
 
-## Connexion SmartSchool (OAuth2) — optionnel
+## Méthodes de connexion
 
-Pour proposer la connexion via un compte SmartSchool :
+Chaque méthode s'active indépendamment :
 
-1. **Demandez un accès OAuth** sur https://www.smartschool.be/oauth/ — vous
-   recevrez un `clientID` et un `secret`. Déclarez comme URL de redirection :
-   `https://votre-portail/auth/smartschool/callback` (HTTPS obligatoire).
-2. Renseignez dans le `.env` :
-   ```
-   SMARTSCHOOL_CLIENT_ID=...
-   SMARTSCHOOL_CLIENT_SECRET=...
-   SMARTSCHOOL_REDIRECT_URI=https://votre-portail/auth/smartschool/callback
-   ```
-3. La méthode SmartSchool apparaît alors automatiquement sur la page d'accueil.
+| Méthode | Activée si… | Désactiver |
+|---|---|---|
+| Email + Facebook | par défaut | `ENABLE_EMAIL=false` |
+| SmartSchool | `SMARTSCHOOL_CLIENT_ID/SECRET/REDIRECT_URI` remplis | `ENABLE_SMARTSCHOOL=false` |
+| Google | `GOOGLE_CLIENT_ID/SECRET/REDIRECT_URI` remplis | `ENABLE_GOOGLE=false` |
+| Microsoft 365 | `MICROSOFT_CLIENT_ID/SECRET/REDIRECT_URI` remplis | `ENABLE_MICROSOFT=false` |
 
-Le portail récupère l'email et le nom depuis le profil SmartSchool (scope `userinfo`)
-et les enregistre comme les autres invités (méthode `smartschool`).
+La page d'accueil affiche le choix entre les méthodes activées ; s'il n'y en a
+qu'une, elle est utilisée directement.
 
-> **Endpoints utilisés** : autorisation `oauth.smartschool.be/OAuth`,
-> token `…/OAuth/index/token`, profil `…/Api/V1/userinfo`.
-> Pensez à ajouter `oauth.smartschool.be` à la pré-autorisation UniFi (voir ci-dessous),
-> sinon l'appareil bloqué ne pourra pas atteindre SmartSchool.
+### Configurer un fournisseur OAuth
+
+Pour chaque fournisseur, renseignez `<NOM>_CLIENT_ID`, `<NOM>_CLIENT_SECRET` et
+`<NOM>_REDIRECT_URI` dans le `.env`. **L'URL de redirection doit être publique,
+en HTTPS, et déclarée côté fournisseur** ; elle suit toujours le format
+`https://votre-portail/auth/<fournisseur>/callback`.
+
+- **SmartSchool** — accès via https://www.smartschool.be/oauth/
+  (endpoints `oauth.smartschool.be`, scope `userinfo`).
+- **Google** — OAuth client « Web » sur https://console.cloud.google.com/.
+- **Microsoft 365** — app enregistrée sur https://entra.microsoft.com/
+  (`MICROSOFT_TENANT` = `common` ou l'ID de votre tenant).
+
+Le portail récupère l'email et le nom depuis le profil du fournisseur et les
+enregistre comme les autres invités (la méthode est indiquée dans l'admin/CSV).
+
+> Pensez à ajouter le domaine du fournisseur (ex. `oauth.smartschool.be`,
+> `accounts.google.com`, `login.microsoftonline.com`) à la pré-autorisation UniFi
+> (voir ci-dessous), sinon l'appareil bloqué ne pourra pas l'atteindre.
 
 ## Configuration du contrôleur UniFi
 
@@ -85,10 +97,11 @@ Dans **Settings → Guest Hotspot** (ou WiFi invité) :
    Facebook pour que le bouton Like puisse se charger **avant** l'authentification :
    - `facebook.com`, `www.facebook.com`, `*.facebook.com`
    - `fbcdn.net`, `*.fbcdn.net`, `connect.facebook.net`
-   - `oauth.smartschool.be` et le domaine de votre école (si SmartSchool est activé)
+   - selon les fournisseurs OAuth activés : `oauth.smartschool.be`,
+     `accounts.google.com`, `login.microsoftonline.com` (+ le domaine de l'école)
 
-   Sans cela, l'appareil étant encore bloqué, le widget Facebook (ou la page
-   SmartSchool) ne pourra pas se charger.
+   Sans cela, l'appareil étant encore bloqué, le widget Facebook (ou la page de
+   connexion du fournisseur) ne pourra pas se charger.
 
 > Pour un déploiement en production, placez ce serveur derrière HTTPS
 > (reverse proxy nginx/Caddy). Les navigateurs et la détection de portail

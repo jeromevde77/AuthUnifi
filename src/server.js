@@ -27,6 +27,23 @@ const pickParams = (src) => ({
   ssid: src.ssid,
 });
 
+const buildQs = (params) =>
+  new URLSearchParams(
+    Object.fromEntries(Object.entries(params).filter(([, v]) => v))
+  ).toString();
+
+// Liste des méthodes de connexion activées (email + fournisseurs OAuth).
+function enabledMethods() {
+  const methods = [];
+  if (config.emailEnabled) {
+    methods.push({ id: 'email', label: 'Email + Facebook', icon: '✉️', href: '/login' });
+  }
+  for (const p of config.enabledProviders) {
+    methods.push({ id: p.id, label: p.label, icon: p.icon, href: `/auth/${p.id}` });
+  }
+  return methods;
+}
+
 // Enregistre l'invité, l'autorise sur UniFi puis affiche la page de succès.
 async function finishLogin(res, { params, email, name, method, liked, onError }) {
   recordGuest({ email, name, method, mac: params.id, apMac: params.ap, ssid: params.ssid, liked });
@@ -45,22 +62,29 @@ async function finishLogin(res, { params, email, name, method, liked, onError })
 }
 
 // Page du portail : UniFi redirige ici avec id, ap, t, url, ssid en query.
-// Affiche le choix de méthode si SmartSchool est activé, sinon le formulaire email.
+// Affiche le choix des méthodes activées ; redirige si une seule est activée.
 app.get('/', (req, res) => {
   const params = pickParams(req.query);
-  if (config.smartschool.enabled) {
-    return res.render('choice', { config, params });
+  const methods = enabledMethods();
+  if (methods.length === 0) {
+    return res.status(503).send('Aucune méthode de connexion configurée.');
   }
-  res.render('login', { config, params, error: null });
+  if (methods.length === 1) {
+    const qs = buildQs(params);
+    return res.redirect(methods[0].href + (qs ? `?${qs}` : ''));
+  }
+  res.render('choice', { config, params, methods });
 });
 
 // Formulaire email + like Facebook.
 app.get('/login', (req, res) => {
+  if (!config.emailEnabled) return res.status(404).send('Méthode email désactivée');
   res.render('login', { config, params: pickParams(req.query), error: null });
 });
 
 // Soumission email : valide, enregistre, autorise.
 app.post('/authorize', async (req, res) => {
+  if (!config.emailEnabled) return res.status(404).send('Méthode email désactivée');
   const params = pickParams(req.body);
   const { email, liked } = req.body;
 
@@ -79,36 +103,38 @@ app.post('/authorize', async (req, res) => {
   });
 });
 
-// --- Connexion SmartSchool (OAuth2) ---
+// --- Connexion via fournisseur OAuth2 (SmartSchool, Google, Microsoft 365) ---
 
-// Redirige vers SmartSchool, en embarquant les paramètres UniFi dans l'état signé.
-app.get('/auth/smartschool', (req, res) => {
-  if (!config.smartschool.enabled) return res.status(404).send('SmartSchool non configuré');
+// Redirige vers le fournisseur, en embarquant les paramètres UniFi dans l'état signé.
+app.get('/auth/:provider', (req, res) => {
+  const provider = config.providers[req.params.provider];
+  if (!provider || !provider.enabled) return res.status(404).send('Fournisseur non configuré');
   const state = signState({ ...pickParams(req.query), n: crypto.randomBytes(8).toString('hex') });
-  res.redirect(buildAuthorizeUrl(state));
+  res.redirect(buildAuthorizeUrl(provider, state));
 });
 
-// Retour SmartSchool : vérifie l'état, récupère le profil, autorise l'invité.
-app.get('/auth/smartschool/callback', async (req, res) => {
-  if (!config.smartschool.enabled) return res.status(404).send('SmartSchool non configuré');
+// Retour OAuth : vérifie l'état, récupère le profil, autorise l'invité.
+app.get('/auth/:provider/callback', async (req, res) => {
+  const provider = config.providers[req.params.provider];
+  if (!provider || !provider.enabled) return res.status(404).send('Fournisseur non configuré');
 
   const renderError = (message) =>
     res.status(400).render('login', { config, params: {}, error: message });
 
   const payload = verifyState(req.query.state);
   if (!payload || !req.query.code) {
-    return renderError('Connexion SmartSchool invalide ou expirée. Réessayez.');
+    return renderError('Connexion invalide ou expirée. Réessayez.');
   }
   const params = pickParams(payload);
 
   try {
-    const { email, name } = await handleCallback(req.query.code);
+    const { email, name } = await handleCallback(provider, req.query.code);
     await finishLogin(res, {
-      params, email, name, method: 'smartschool', liked: false, onError: renderError,
+      params, email, name, method: provider.id, liked: false, onError: renderError,
     });
   } catch (err) {
-    console.error('Échec OAuth SmartSchool :', err.message);
-    renderError('La connexion SmartSchool a échoué. Réessayez.');
+    console.error(`Échec OAuth ${provider.id} :`, err.message);
+    renderError('La connexion a échoué. Réessayez.');
   }
 });
 

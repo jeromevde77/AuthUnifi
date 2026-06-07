@@ -1,8 +1,6 @@
 import crypto from 'node:crypto';
 import { config } from './config.js';
 
-const ss = config.smartschool;
-
 // --- État OAuth signé (anti-CSRF + transport des paramètres UniFi) ---
 
 function base64url(buf) {
@@ -28,31 +26,46 @@ export function verifyState(state) {
   }
 }
 
-// --- Flux OAuth2 SmartSchool ---
+// --- Mapping du profil userinfo vers { email, name } selon le fournisseur ---
 
-// Construit l'URL vers laquelle rediriger l'utilisateur pour se connecter.
-export function buildAuthorizeUrl(state) {
+const USERINFO_MAP = {
+  smartschool: (j) => ({
+    email: j.email || null,
+    name: j.fullname || [j.name, j.surname].filter(Boolean).join(' ').trim() || null,
+  }),
+  // Google et Microsoft (OIDC) renvoient des champs standard.
+  google: (j) => ({ email: j.email || null, name: j.name || null }),
+  microsoft: (j) => ({ email: j.email || j.preferred_username || null, name: j.name || null }),
+};
+
+// --- Flux OAuth2 générique ---
+
+// Construit l'URL d'autorisation vers laquelle rediriger l'utilisateur.
+export function buildAuthorizeUrl(provider, state) {
   const params = new URLSearchParams({
-    client_id: ss.clientId,
-    redirect_uri: ss.redirectUri,
+    client_id: provider.clientId,
+    redirect_uri: provider.redirectUri,
     response_type: 'code',
-    scope: ss.scope,
+    scope: provider.scope,
     state,
   });
-  return `${ss.authorizeUrl}?${params.toString()}`;
+  return `${provider.authorizeUrl}?${params.toString()}`;
 }
 
 // Échange le code d'autorisation contre un access token.
-async function exchangeCode(code) {
-  const res = await fetch(ss.tokenUrl, {
+async function exchangeCode(provider, code) {
+  const res = await fetch(provider.tokenUrl, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      Accept: 'application/json',
+    },
     body: new URLSearchParams({
       grant_type: 'authorization_code',
       code,
-      client_id: ss.clientId,
-      client_secret: ss.clientSecret,
-      redirect_uri: ss.redirectUri,
+      client_id: provider.clientId,
+      client_secret: provider.clientSecret,
+      redirect_uri: provider.redirectUri,
     }),
   });
   if (!res.ok) throw new Error(`Échec de l'échange du code (${res.status})`);
@@ -61,19 +74,20 @@ async function exchangeCode(code) {
   return json.access_token;
 }
 
-// Récupère le profil utilisateur SmartSchool.
-async function fetchUserinfo(accessToken) {
-  const url = `${ss.userinfoUrl}?access_token=${encodeURIComponent(accessToken)}`;
-  const res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+// Récupère le profil utilisateur (token en en-tête Bearer + en query pour SmartSchool).
+async function fetchUserinfo(provider, accessToken) {
+  const url = `${provider.userinfoUrl}?access_token=${encodeURIComponent(accessToken)}`;
+  const res = await fetch(url, {
+    headers: { Authorization: `Bearer ${accessToken}`, Accept: 'application/json' },
+  });
   if (!res.ok) throw new Error(`Échec de la récupération du profil (${res.status})`);
   return res.json();
 }
 
-// Traite le retour OAuth : renvoie { email, name } du profil SmartSchool.
-export async function handleCallback(code) {
-  const accessToken = await exchangeCode(code);
-  const info = await fetchUserinfo(accessToken);
-  const fullName =
-    info.fullname || [info.name, info.surname].filter(Boolean).join(' ').trim() || null;
-  return { email: info.email || null, name: fullName };
+// Traite le retour OAuth : renvoie { email, name } normalisés.
+export async function handleCallback(provider, code) {
+  const accessToken = await exchangeCode(provider, code);
+  const info = await fetchUserinfo(provider, accessToken);
+  const map = USERINFO_MAP[provider.id] || ((j) => ({ email: j.email || null, name: j.name || null }));
+  return map(info);
 }

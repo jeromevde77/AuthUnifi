@@ -35,7 +35,13 @@
               <td><%= g.id %></td>
               <td><%= g.email || '—' %></td>
               <td><%= g.name || '—' %></td>
-              <td><%= g.method === 'smartschool' ? '🎓 SmartSchool' : '✉️ Email' %></td>
+              <%
+                const labels = {
+                  email: '✉️ Email', smartschool: '🎓 SmartSchool',
+                  google: 'Ⓖ Google', microsoft: 'Ⓜ Microsoft 365',
+                };
+              %>
+              <td><%= labels[g.method] || g.method %></td>
               <td class="mono"><%= g.mac || '—' %></td>
               <td><%= g.liked ? '✓' : '—' %></td>
               <td class="mono"><%= g.created_at %></td>

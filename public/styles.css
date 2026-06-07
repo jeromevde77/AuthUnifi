@@ -167,6 +167,8 @@ button:hover { background: var(--primary-dark); }
   font-size: 22px;
 }
 .choice-btn.smartschool .choice-icon { background: #fff3e0; }
+.choice-btn.google .choice-icon { background: #e8f0fe; color: #4285f4; font-weight: 700; }
+.choice-btn.microsoft .choice-icon { background: #eef3fb; color: #0067b8; font-weight: 700; }
 
 /* --- Page admin --- */
 body.admin {
