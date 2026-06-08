@@ -53,11 +53,13 @@
         <span>Entrez votre email et validez</span>
       </div>
 
-      <input type="hidden" name="id" value="<%= params.id || '' %>" />
-      <input type="hidden" name="ap" value="<%= params.ap || '' %>" />
-      <input type="hidden" name="t" value="<%= params.t || '' %>" />
-      <input type="hidden" name="url" value="<%= params.url || '' %>" />
+      <input type="hidden" name="clientMac" value="<%= params.clientMac || '' %>" />
+      <input type="hidden" name="apMac" value="<%= params.apMac || '' %>" />
       <input type="hidden" name="ssid" value="<%= params.ssid || '' %>" />
+      <input type="hidden" name="radioId" value="<%= params.radioId || '' %>" />
+      <input type="hidden" name="site" value="<%= params.site || '' %>" />
+      <input type="hidden" name="redirectUrl" value="<%= params.redirectUrl || '' %>" />
+      <input type="hidden" name="t" value="<%= params.t || '' %>" />
 
       <label for="email">Adresse email</label>
       <input type="email" id="email" name="email" placeholder="vous@exemple.com" required />

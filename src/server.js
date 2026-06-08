@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { config } from './config.js';
 import { recordGuest, allGuests, guestStats } from './db.js';
-import { authorizeGuest } from './unifi.js';
+import { authorizeClient, extractParams } from './controller.js';
 import { signState, verifyState, buildAuthorizeUrl, handleCallback } from './oauth.js';
 import { enabledMethods, isEnabled, listMethods, setEnabled } from './methods.js';
 import {
@@ -26,13 +26,10 @@ app.use('/static', express.static(join(__dirname, '..', 'public')));
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-const pickParams = (src) => ({
-  id: src.id,
-  ap: src.ap,
-  t: src.t,
-  url: src.url,
-  ssid: src.ssid,
-});
+// Paramètres normalisés (indépendants du contrôleur), transportés via les champs
+// cachés du formulaire et l'état OAuth.
+const PARAM_KEYS = ['clientMac', 'apMac', 'ssid', 'radioId', 'site', 'redirectUrl', 't'];
+const pickParams = (src) => Object.fromEntries(PARAM_KEYS.map((k) => [k, src[k]]));
 
 const buildQs = (params) =>
   new URLSearchParams(
@@ -45,27 +42,27 @@ const renderLogin = (res, { params, error = null, status = 200 }) =>
     config, params, error, showBack: enabledMethods().length > 1,
   });
 
-// Enregistre l'invité, l'autorise sur UniFi puis affiche la page de succès.
+// Enregistre l'invité, l'autorise sur le contrôleur puis affiche la page de succès.
 async function finishLogin(res, { params, email, name, method, liked, minutes, onError }) {
-  recordGuest({ email, name, method, mac: params.id, apMac: params.ap, ssid: params.ssid, liked });
+  recordGuest({ email, name, method, mac: params.clientMac, apMac: params.apMac, ssid: params.ssid, liked });
 
-  if (!params.id) {
-    // Pas de MAC : on ne peut pas autoriser via UniFi (ex. test hors hotspot).
-    return res.render('success', { config, authorized: false, redirectUrl: params.url });
+  if (!params.clientMac) {
+    // Pas de MAC : on ne peut pas autoriser (ex. test hors hotspot).
+    return res.render('success', { config, authorized: false, redirectUrl: params.redirectUrl });
   }
   try {
-    await authorizeGuest(params.id, params.ap, minutes);
-    res.render('success', { config, authorized: true, redirectUrl: params.url });
+    await authorizeClient(params, minutes);
+    res.render('success', { config, authorized: true, redirectUrl: params.redirectUrl });
   } catch (err) {
-    console.error("Échec de l'autorisation UniFi :", err.message);
+    console.error("Échec de l'autorisation du contrôleur :", err.message);
     onError("Une erreur est survenue lors de la connexion. Merci de réessayer.");
   }
 }
 
-// Page du portail : UniFi redirige ici avec id, ap, t, url, ssid en query.
+// Page du portail : le contrôleur redirige ici avec ses paramètres en query.
 // Affiche le choix des méthodes activées ; redirige si une seule est activée.
 app.get('/', (req, res) => {
-  const params = pickParams(req.query);
+  const params = extractParams(req.query);
   const methods = enabledMethods();
   if (methods.length === 0) {
     return res.status(503).send('Aucune méthode de connexion configurée.');

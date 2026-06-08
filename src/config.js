@@ -8,6 +8,12 @@ function required(name) {
   return value;
 }
 
+// N'exige une variable que si elle concerne le contrôleur actuellement sélectionné.
+const controllerType = (process.env.CONTROLLER_TYPE || 'unifi').toLowerCase();
+function requiredFor(type, name) {
+  return controllerType === type ? required(name) : process.env[name] || '';
+}
+
 // Définitions des fournisseurs OAuth disponibles. Les endpoints sont fixes ;
 // les identifiants viennent de l'environnement (<ID>_CLIENT_ID, etc.).
 const msTenant = process.env.MICROSOFT_TENANT || 'common';
@@ -87,13 +93,26 @@ function buildProviders() {
 export const config = {
   port: parseInt(process.env.PORT || '3000', 10),
 
+  // Type de contrôleur : "unifi" (défaut) ou "omada".
+  controllerType,
+
   unifi: {
-    host: required('UNIFI_HOST'),
+    host: requiredFor('unifi', 'UNIFI_HOST'),
     port: parseInt(process.env.UNIFI_PORT || '443', 10),
-    username: required('UNIFI_USERNAME'),
-    password: required('UNIFI_PASSWORD'),
+    username: requiredFor('unifi', 'UNIFI_USERNAME'),
+    password: requiredFor('unifi', 'UNIFI_PASSWORD'),
     site: process.env.UNIFI_SITE || 'default',
     sslverify: process.env.UNIFI_SSL_VERIFY === 'true',
+  },
+
+  // Contrôleur Omada (OC200/OC300 ou logiciel v5.0.15+).
+  omada: {
+    host: requiredFor('omada', 'OMADA_HOST'),
+    port: parseInt(process.env.OMADA_PORT || '443', 10),
+    controllerId: requiredFor('omada', 'OMADA_CONTROLLER_ID'),
+    operator: requiredFor('omada', 'OMADA_OPERATOR_USER'),
+    operatorPassword: requiredFor('omada', 'OMADA_OPERATOR_PASSWORD'),
+    sslVerify: process.env.OMADA_SSL_VERIFY === 'true',
   },
 
   authMinutes: parseInt(process.env.AUTH_MINUTES || '480', 10),

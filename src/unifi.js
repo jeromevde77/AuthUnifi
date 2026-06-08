@@ -3,13 +3,11 @@ import { config } from './config.js';
 
 /**
  * Autorise un appareil invité sur le contrôleur UniFi.
- * Le contrôleur ouvre alors l'accès Internet pour cette adresse MAC.
  *
- * @param {string} mac    Adresse MAC du client (paramètre `id` envoyé par UniFi)
- * @param {string} [apMac] Adresse MAC du point d'accès (paramètre `ap`)
- * @param {number} [minutes] Durée d'autorisation (défaut : config.authMinutes)
+ * @param {{clientMac: string, apMac?: string}} params Paramètres normalisés
+ * @param {number} minutes Durée d'autorisation
  */
-export async function authorizeGuest(mac, apMac, minutes = config.authMinutes) {
+export async function authorize(params, minutes) {
   const controller = new Controller({
     host: config.unifi.host,
     port: config.unifi.port,
@@ -22,7 +20,9 @@ export async function authorizeGuest(mac, apMac, minutes = config.authMinutes) {
   await controller.login();
   try {
     // authorizeGuest(mac, minutes, up, down, megabytes, ap_mac)
-    await controller.authorizeGuest(mac, minutes, undefined, undefined, undefined, apMac);
+    await controller.authorizeGuest(
+      params.clientMac, minutes, undefined, undefined, undefined, params.apMac
+    );
   } finally {
     await controller.logout().catch(() => {});
   }

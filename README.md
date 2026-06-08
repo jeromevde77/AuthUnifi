@@ -140,6 +140,28 @@ Dans **Settings → Guest Hotspot** (ou WiFi invité) :
 > (reverse proxy nginx/Caddy). Les navigateurs et la détection de portail
 > captif fonctionnent plus fiablement en HTTPS.
 
+## Contrôleur Omada (alternative à UniFi)
+
+Le portail fonctionne aussi avec un contrôleur **TP-Link Omada** (OC200/OC300 ou
+logiciel v5.0.15+). Mettez `CONTROLLER_TYPE=omada` dans le `.env` et renseignez le
+bloc `OMADA_*` (voir `.env.example`). Toute la partie visible (email + like, OAuth,
+admin, durées par groupe) est identique ; seule l'autorisation côté contrôleur change.
+
+Prérequis côté Omada :
+1. **Compte « opérateur »** : créez-le dans Omada → **Hotspot Manager** (ce n'est
+   pas le compte admin). Renseignez-le dans `OMADA_OPERATOR_USER/PASSWORD`.
+2. **Controller ID** : le long identifiant visible dans l'URL de l'interface Omada
+   → `OMADA_CONTROLLER_ID`.
+3. Dans **Settings → Authentication → Portal**, créez un portail avec
+   **Authentication Type = External Portal Server** et indiquez l'URL de ce serveur.
+4. Ajoutez les mêmes domaines (Facebook / OAuth) à la liste d'autorisation
+   préalable du portail Omada.
+
+> Le portail s'authentifie auprès du contrôleur via l'API hotspot
+> (`/[id]/api/v2/hotspot/login` puis `/extPortal/auth`, `authType` 4). La durée
+> est convertie en millisecondes. Implémenté d'après la doc officielle TP-Link ;
+> à valider sur votre matériel.
+
 ## Administration & emails collectés
 
 - **Page d'admin** : `https://votre-portail/admin` — activation des méthodes de
@@ -187,7 +209,9 @@ Les données sont dans `data/portal.db` (SQLite). Ce dossier est ignoré par git
 
 ```
 src/server.js       Routes Express (choix, login, OAuth, autorisation, admin)
-src/unifi.js        Client API du contrôleur UniFi (authorize-guest)
+src/controller.js   Répartiteur UniFi/Omada + normalisation des paramètres
+src/unifi.js        Adaptateur UniFi (authorize-guest)
+src/omada.js        Adaptateur Omada (hotspot login + extPortal/auth)
 src/oauth.js        Flux OAuth2 générique + état signé (anti-CSRF)
 src/methods.js      Activation des méthodes (override admin ▸ défaut .env)
 src/groups.js       Règles de durée par groupe (table éditable + calcul)

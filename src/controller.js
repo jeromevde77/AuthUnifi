@@ -1,0 +1,36 @@
+import { config } from './config.js';
+import * as unifi from './unifi.js';
+import * as omada from './omada.js';
+
+const impl = config.controllerType === 'omada' ? omada : unifi;
+
+// Autorise le client sur le contrôleur sélectionné (UniFi ou Omada).
+export function authorizeClient(params, minutes) {
+  return impl.authorize(params, minutes);
+}
+
+// Traduit les paramètres de redirection du contrôleur vers un format normalisé.
+// Appelé uniquement sur le premier hop (le contrôleur redirige vers "/").
+export function extractParams(q) {
+  if (config.controllerType === 'omada') {
+    return {
+      clientMac: q.clientMac,
+      apMac: q.apMac,
+      ssid: q.ssidName,
+      radioId: q.radioId,
+      site: q.site,
+      redirectUrl: q.redirectUrl,
+      t: q.t,
+    };
+  }
+  // UniFi
+  return {
+    clientMac: q.id,
+    apMac: q.ap,
+    ssid: q.ssid,
+    radioId: undefined,
+    site: undefined,
+    redirectUrl: q.url,
+    t: q.t,
+  };
+}
