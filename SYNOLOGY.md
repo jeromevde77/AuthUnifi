@@ -174,6 +174,7 @@ simplement `portal.db`. Le `.env` (configuration) mérite aussi une sauvegarde.
 | Symptôme | Piste |
 |---|---|
 | Le projet ne se crée pas | Le fichier doit s'appeler exactement `docker-compose.yml` (§4.3). |
+| Build échoue : `OCI runtime create failed` / seccomp | Noyau Synology trop ancien pour la glibc récente. **Déjà corrigé** : l'image utilise Debian *bullseye* et le compte Synology ajoute `seccomp:unconfined`. Vérifiez que vous avez bien la dernière version du `Dockerfile` et du `docker-compose.synology.yml`, puis reconstruisez. |
 | `EACCES` / permission denied sur la base | Le dossier `data/` n'est pas accessible en écriture. Le fichier Synology tourne en root pour éviter ça ; si vous l'avez retiré, rendez `data/` accessible à l'UID 1000. |
 | La page invité ne s'ouvre pas sur les téléphones | Vérifiez l'accès VLAN invité → NAS (§7) et l'allowlist de pré-autorisation. |
 | Erreur d'autorisation UniFi | Vérifiez `UNIFI_HOST/PORT/USERNAME/PASSWORD` et `UNIFI_SSL_VERIFY=false` pour un certificat auto-signé. Consultez les logs du conteneur. |
