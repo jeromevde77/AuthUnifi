@@ -84,10 +84,49 @@ async function fetchUserinfo(provider, accessToken) {
   return res.json();
 }
 
-// Traite le retour OAuth : renvoie { email, name } normalisés.
+// Récupère les groupes de l'utilisateur (identifiants à matcher contre GROUP_DURATIONS).
+// Renvoie un tableau de chaînes (GUID + nom pour MS, email + nom pour Google).
+async function fetchGroups(provider, accessToken, email) {
+  if (provider.id === 'microsoft') {
+    const res = await fetch(
+      'https://graph.microsoft.com/v1.0/me/memberOf?$select=id,displayName',
+      { headers: { Authorization: `Bearer ${accessToken}`, Accept: 'application/json' } }
+    );
+    if (!res.ok) throw new Error(`Graph memberOf a échoué (${res.status})`);
+    const json = await res.json();
+    return (json.value || []).flatMap((g) => [g.id, g.displayName].filter(Boolean));
+  }
+  if (provider.id === 'google') {
+    const query = encodeURIComponent(`member_key_id == '${email}'`);
+    const res = await fetch(
+      `https://cloudidentity.googleapis.com/v1/groups/-/memberships:searchTransitiveGroups?query=${query}`,
+      { headers: { Authorization: `Bearer ${accessToken}`, Accept: 'application/json' } }
+    );
+    if (!res.ok) throw new Error(`Cloud Identity a échoué (${res.status})`);
+    const json = await res.json();
+    return (json.memberships || []).flatMap((m) =>
+      [m.groupKey?.id, m.displayName].filter(Boolean)
+    );
+  }
+  return [];
+}
+
+// Traite le retour OAuth : renvoie { email, name, groups } normalisés.
+// Les groupes ne sont récupérés que si le fournisseur utilise les durées par groupe.
 export async function handleCallback(provider, code) {
   const accessToken = await exchangeCode(provider, code);
   const info = await fetchUserinfo(provider, accessToken);
   const map = USERINFO_MAP[provider.id] || ((j) => ({ email: j.email || null, name: j.name || null }));
-  return map(info);
+  const { email, name } = map(info);
+
+  let groups = [];
+  if (provider.useGroups) {
+    try {
+      groups = await fetchGroups(provider, accessToken, email);
+    } catch (err) {
+      // Ne bloque pas la connexion : on retombera sur la durée par défaut.
+      console.error(`Lecture des groupes ${provider.id} échouée :`, err.message);
+    }
+  }
+  return { email, name, groups };
 }

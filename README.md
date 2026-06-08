@@ -90,6 +90,28 @@ enregistre comme les autres invités (la méthode est indiquée dans l'admin/CSV
 > `accounts.google.com`, `login.microsoftonline.com`) à la pré-autorisation UniFi
 > (voir ci-dessous), sinon l'appareil bloqué ne pourra pas l'atteindre.
 
+### Durée d'accès selon le groupe (Google / Microsoft 365)
+
+La durée d'autorisation peut dépendre de l'appartenance de l'utilisateur à un
+groupe. Définissez `GROUP_DURATIONS` (JSON, par fournisseur : groupe → minutes) :
+
+```
+GROUP_DURATIONS={"google":{"profs@ecole.be":10080,"eleves@ecole.be":480},"microsoft":{"<guid>":10080}}
+```
+
+- Si l'utilisateur appartient à **plusieurs** groupes mappés, **la plus longue
+  durée l'emporte** ; sinon `AUTH_MINUTES` (durée par défaut) s'applique.
+- **Google** : les groupes sont identifiés par leur **email** ; il faut activer
+  l'**API Cloud Identity** dans votre projet Google Cloud (le scope
+  `cloud-identity.groups.readonly` est ajouté automatiquement).
+- **Microsoft 365** : les groupes sont identifiés par leur **GUID** (ou leur nom) ;
+  le scope `GroupMember.Read.All` est ajouté automatiquement et nécessite le
+  **consentement administrateur** du tenant. Le portail lit les groupes via
+  Microsoft Graph (`/me/memberOf`).
+- Ni Google ni Microsoft n'exposent les groupes dans le profil OIDC standard :
+  le portail fait un appel API dédié après la connexion. En cas d'échec de cet
+  appel, la connexion aboutit quand même avec la durée par défaut.
+
 ## Configuration du contrôleur UniFi
 
 Dans **Settings → Guest Hotspot** (ou WiFi invité) :
@@ -158,6 +180,7 @@ src/server.js       Routes Express (choix, login, OAuth, autorisation, admin)
 src/unifi.js        Client API du contrôleur UniFi (authorize-guest)
 src/oauth.js        Flux OAuth2 générique + état signé (anti-CSRF)
 src/methods.js      Activation des méthodes (override admin ▸ défaut .env)
+src/duration.js     Durée d'accès selon le groupe (Google / Microsoft 365)
 src/db.js           Stockage SQLite (invités, réglages) + statistiques
 src/config.js       Chargement de la configuration (.env)
 views/              Pages EJS (choice, login, succès, admin)

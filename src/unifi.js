@@ -7,8 +7,9 @@ import { config } from './config.js';
  *
  * @param {string} mac    Adresse MAC du client (paramètre `id` envoyé par UniFi)
  * @param {string} [apMac] Adresse MAC du point d'accès (paramètre `ap`)
+ * @param {number} [minutes] Durée d'autorisation (défaut : config.authMinutes)
  */
-export async function authorizeGuest(mac, apMac) {
+export async function authorizeGuest(mac, apMac, minutes = config.authMinutes) {
   const controller = new Controller({
     host: config.unifi.host,
     port: config.unifi.port,
@@ -21,7 +22,7 @@ export async function authorizeGuest(mac, apMac) {
   await controller.login();
   try {
     // authorizeGuest(mac, minutes, up, down, megabytes, ap_mac)
-    await controller.authorizeGuest(mac, config.authMinutes, undefined, undefined, undefined, apMac);
+    await controller.authorizeGuest(mac, minutes, undefined, undefined, undefined, apMac);
   } finally {
     await controller.logout().catch(() => {});
   }

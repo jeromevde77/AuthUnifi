@@ -7,6 +7,7 @@ import { recordGuest, allGuests, guestStats } from './db.js';
 import { authorizeGuest } from './unifi.js';
 import { signState, verifyState, buildAuthorizeUrl, handleCallback } from './oauth.js';
 import { enabledMethods, isEnabled, listMethods, setEnabled } from './methods.js';
+import { durationForGroups } from './duration.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -40,7 +41,7 @@ const renderLogin = (res, { params, error = null, status = 200 }) =>
   });
 
 // Enregistre l'invité, l'autorise sur UniFi puis affiche la page de succès.
-async function finishLogin(res, { params, email, name, method, liked, onError }) {
+async function finishLogin(res, { params, email, name, method, liked, minutes, onError }) {
   recordGuest({ email, name, method, mac: params.id, apMac: params.ap, ssid: params.ssid, liked });
 
   if (!params.id) {
@@ -48,7 +49,7 @@ async function finishLogin(res, { params, email, name, method, liked, onError })
     return res.render('success', { config, authorized: false, redirectUrl: params.url });
   }
   try {
-    await authorizeGuest(params.id, params.ap);
+    await authorizeGuest(params.id, params.ap, minutes);
     res.render('success', { config, authorized: true, redirectUrl: params.url });
   } catch (err) {
     console.error("Échec de l'autorisation UniFi :", err.message);
@@ -121,9 +122,10 @@ app.get('/auth/:provider/callback', async (req, res) => {
   const params = pickParams(payload);
 
   try {
-    const { email, name } = await handleCallback(provider, req.query.code);
+    const { email, name, groups } = await handleCallback(provider, req.query.code);
+    const minutes = durationForGroups(provider.id, groups);
     await finishLogin(res, {
-      params, email, name, method: provider.id, liked: false, onError: renderError,
+      params, email, name, method: provider.id, liked: false, minutes, onError: renderError,
     });
   } catch (err) {
     console.error(`Échec OAuth ${provider.id} :`, err.message);
