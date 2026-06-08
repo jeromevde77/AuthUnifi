@@ -239,6 +239,26 @@ body.admin {
   width: auto;
   padding: 9px 18px;
 }
+.panel-hint { font-size: 13px; color: var(--muted); margin: 0 0 12px; }
+
+.rules-table { width: 100%; border-collapse: collapse; font-size: 14px; margin-bottom: 8px; }
+.rules-table th, .rules-table td { padding: 8px 10px; text-align: left; border-bottom: 1px solid #eef0f2; }
+.rules-table th { font-size: 12px; text-transform: uppercase; color: var(--muted); }
+.rules-table form { margin: 0; }
+.link-danger {
+  margin: 0; padding: 0; width: auto;
+  background: none; color: var(--error); font-size: 13px; font-weight: 600;
+  border: none; cursor: pointer;
+}
+.link-danger:hover { background: none; text-decoration: underline; }
+
+.rule-add { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 8px; }
+.rule-add select, .rule-add input {
+  padding: 9px 10px; border: 1px solid #ccd0d5; border-radius: 8px; font-size: 14px;
+}
+.rule-add input[type="text"] { flex: 1 1 220px; }
+.rule-add input[type="number"] { width: 110px; }
+.rule-add button { margin-top: 0; }
 
 .table-wrap {
   background: #fff;

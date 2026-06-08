@@ -75,6 +75,50 @@ export function setSetting(key, value) {
   setSettingStmt.run({ key, value });
 }
 
+// --- Règles de durée par groupe (éditables depuis l'admin) ---
+
+db.exec(`
+  CREATE TABLE IF NOT EXISTS group_rules (
+    id        INTEGER PRIMARY KEY AUTOINCREMENT,
+    provider  TEXT NOT NULL,
+    group_key TEXT NOT NULL,
+    minutes   INTEGER NOT NULL,
+    UNIQUE(provider, group_key)
+  );
+`);
+
+const listGroupRulesStmt = db.prepare(
+  'SELECT * FROM group_rules ORDER BY provider, group_key'
+);
+const getGroupRulesStmt = db.prepare(
+  'SELECT group_key, minutes FROM group_rules WHERE provider = ?'
+);
+const upsertGroupRuleStmt = db.prepare(`
+  INSERT INTO group_rules (provider, group_key, minutes)
+  VALUES (@provider, @group_key, @minutes)
+  ON CONFLICT(provider, group_key) DO UPDATE SET minutes = @minutes
+`);
+const deleteGroupRuleStmt = db.prepare('DELETE FROM group_rules WHERE id = ?');
+const countGroupRulesStmt = db.prepare('SELECT COUNT(*) AS n FROM group_rules');
+
+export function listGroupRules() {
+  return listGroupRulesStmt.all();
+}
+export function getGroupRules(provider) {
+  const out = {};
+  for (const r of getGroupRulesStmt.all(provider)) out[r.group_key] = r.minutes;
+  return out;
+}
+export function upsertGroupRule({ provider, groupKey, minutes }) {
+  return upsertGroupRuleStmt.run({ provider, group_key: groupKey, minutes });
+}
+export function deleteGroupRule(id) {
+  return deleteGroupRuleStmt.run(id);
+}
+export function countGroupRules() {
+  return countGroupRulesStmt.get().n;
+}
+
 const statsStmt = db.prepare(`
   SELECT
     COUNT(*) AS total,

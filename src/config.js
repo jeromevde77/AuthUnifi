@@ -16,6 +16,8 @@ const PROVIDER_DEFS = {
     label: 'Compte SmartSchool',
     icon: '🎓',
     scope: 'userinfo',
+    // Scope supplémentaire pour lire les groupes/classes (si des règles existent).
+    groupScope: 'groupinfo',
     authorizeUrl: 'https://oauth.smartschool.be/OAuth',
     tokenUrl: 'https://oauth.smartschool.be/OAuth/index/token',
     userinfoUrl: 'https://oauth.smartschool.be/Api/V1/userinfo',
@@ -63,18 +65,15 @@ function buildProviders() {
     const clientSecret = process.env[`${up}_CLIENT_SECRET`] || '';
     const redirectUri = process.env[`${up}_REDIRECT_URI`] || '';
     const configured = Boolean(clientId && clientSecret && redirectUri);
-    // Des règles de durée par groupe sont-elles définies pour ce fournisseur ?
-    const useGroups = Boolean(def.groupScope && groupDurations[id]);
-    let scope = process.env[`${up}_SCOPE`] || def.scope;
-    if (useGroups) scope = `${scope} ${def.groupScope}`;
     out[id] = {
       id,
       ...def,
       clientId,
       clientSecret,
       redirectUri,
-      scope,
-      useGroups,
+      // Scope de base (sans groupes) ; le scope groupes est ajouté à l'exécution
+      // par buildAuthorizeUrl si des règles de durée existent pour ce fournisseur.
+      scope: process.env[`${up}_SCOPE`] || def.scope,
       // Identifiants présents ?
       configured,
       // État par défaut (.env) : configuré et non désactivé via ENABLE_<ID>=false.

@@ -7,7 +7,12 @@ import { recordGuest, allGuests, guestStats } from './db.js';
 import { authorizeGuest } from './unifi.js';
 import { signState, verifyState, buildAuthorizeUrl, handleCallback } from './oauth.js';
 import { enabledMethods, isEnabled, listMethods, setEnabled } from './methods.js';
-import { durationForGroups } from './duration.js';
+import {
+  durationForGroups, hasGroupRules, seedFromEnv,
+  listRules, addRule, removeRule, groupProviderIds,
+} from './groups.js';
+
+seedFromEnv();
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -105,7 +110,7 @@ app.get('/auth/:provider', (req, res) => {
   const provider = config.providers[req.params.provider];
   if (!provider || !isEnabled(provider.id)) return res.status(404).send('Fournisseur non disponible');
   const state = signState({ ...pickParams(req.query), n: crypto.randomBytes(8).toString('hex') });
-  res.redirect(buildAuthorizeUrl(provider, state));
+  res.redirect(buildAuthorizeUrl(provider, state, hasGroupRules(provider.id)));
 });
 
 // Retour OAuth : vérifie l'état, récupère le profil, autorise l'invité.
@@ -122,7 +127,8 @@ app.get('/auth/:provider/callback', async (req, res) => {
   const params = pickParams(payload);
 
   try {
-    const { email, name, groups } = await handleCallback(provider, req.query.code);
+    const withGroups = hasGroupRules(provider.id);
+    const { email, name, groups } = await handleCallback(provider, req.query.code, withGroups);
     const minutes = durationForGroups(provider.id, groups);
     await finishLogin(res, {
       params, email, name, method: provider.id, liked: false, minutes, onError: renderError,
@@ -149,10 +155,11 @@ function requireAdmin(req, res, next) {
   return res.status(401).send('Authentification requise');
 }
 
-// Tableau de bord admin : méthodes de connexion + emails collectés.
+// Tableau de bord admin : méthodes, durées par groupe et emails collectés.
 app.get('/admin', requireAdmin, (req, res) => {
   res.render('admin', {
     config, stats: guestStats(), guests: allGuests(), methods: listMethods(),
+    groupRules: listRules(), groupProviderIds, authMinutes: config.authMinutes,
     saved: req.query.saved === '1',
   });
 });
@@ -163,6 +170,18 @@ app.post('/admin/methods', requireAdmin, (req, res) => {
   for (const m of listMethods()) {
     if (m.configured) setEnabled(m.id, checked.includes(m.id));
   }
+  res.redirect('/admin?saved=1');
+});
+
+// Ajoute (ou met à jour) une règle de durée par groupe.
+app.post('/admin/group-rules', requireAdmin, (req, res) => {
+  addRule(req.body.provider, req.body.group_key, req.body.minutes);
+  res.redirect('/admin?saved=1');
+});
+
+// Supprime une règle de durée par groupe.
+app.post('/admin/group-rules/delete', requireAdmin, (req, res) => {
+  removeRule(parseInt(req.body.id, 10));
   res.redirect('/admin?saved=1');
 });
 

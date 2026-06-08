@@ -38,6 +38,47 @@
       </form>
     </section>
 
+    <% if (groupProviderIds.length) { %>
+    <section class="panel">
+      <h2>Durées d'accès par groupe</h2>
+      <p class="panel-hint">
+        Durée (en minutes) selon l'appartenance à un groupe (Google / Microsoft / SmartSchool).
+        La plus longue durée l'emporte ; sinon la durée par défaut (<%= authMinutes %> min) s'applique.
+      </p>
+
+      <table class="rules-table">
+        <thead><tr><th>Fournisseur</th><th>Groupe</th><th>Minutes</th><th></th></tr></thead>
+        <tbody>
+          <% if (groupRules.length === 0) { %>
+            <tr><td colspan="4" class="empty">Aucune règle. La durée par défaut s'applique à tous.</td></tr>
+          <% } %>
+          <% groupRules.forEach((r) => { %>
+            <tr>
+              <td><%= r.provider %></td>
+              <td class="mono"><%= r.group_key %></td>
+              <td><%= r.minutes %></td>
+              <td>
+                <form method="POST" action="/admin/group-rules/delete">
+                  <input type="hidden" name="id" value="<%= r.id %>" />
+                  <button type="submit" class="link-danger">Supprimer</button>
+                </form>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+
+      <form method="POST" action="/admin/group-rules" class="rule-add">
+        <select name="provider" required>
+          <% groupProviderIds.forEach((id) => { %><option value="<%= id %>"><%= id %></option><% }) %>
+        </select>
+        <input type="text" name="group_key" placeholder="groupe (email / GUID / nom de classe)" required />
+        <input type="number" name="minutes" min="1" placeholder="minutes" required />
+        <button type="submit">Ajouter</button>
+      </form>
+    </section>
+    <% } %>
+
     <div class="table-wrap">
       <table>
         <thead>

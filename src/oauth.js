@@ -40,13 +40,17 @@ const USERINFO_MAP = {
 
 // --- Flux OAuth2 générique ---
 
-// Construit l'URL d'autorisation vers laquelle rediriger l'utilisateur.
-export function buildAuthorizeUrl(provider, state) {
+// Construit l'URL d'autorisation. `withGroups` ajoute le scope de lecture des
+// groupes (requis quand des règles de durée par groupe existent).
+export function buildAuthorizeUrl(provider, state, withGroups = false) {
+  const scope = withGroups && provider.groupScope
+    ? `${provider.scope} ${provider.groupScope}`
+    : provider.scope;
   const params = new URLSearchParams({
     client_id: provider.clientId,
     redirect_uri: provider.redirectUri,
     response_type: 'code',
-    scope: provider.scope,
+    scope,
     state,
   });
   return `${provider.authorizeUrl}?${params.toString()}`;
@@ -108,19 +112,33 @@ async function fetchGroups(provider, accessToken, email) {
       [m.groupKey?.id, m.displayName].filter(Boolean)
     );
   }
+  if (provider.id === 'smartschool') {
+    const url = `https://oauth.smartschool.be/Api/V1/groupinfo?access_token=${encodeURIComponent(accessToken)}`;
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${accessToken}`, Accept: 'application/json' },
+    });
+    if (!res.ok) throw new Error(`groupinfo SmartSchool a échoué (${res.status})`);
+    const json = await res.json();
+    // Format non documenté : on aplatit les entrées et on extrait les identifiants
+    // lisibles (name/code/desc) pour pouvoir les matcher.
+    const entries = Array.isArray(json)
+      ? json
+      : Object.values(json || {}).flat().filter((x) => x && typeof x === 'object');
+    return entries.flatMap((g) => [g.name, g.code, g.desc].filter((v) => typeof v === 'string'));
+  }
   return [];
 }
 
 // Traite le retour OAuth : renvoie { email, name, groups } normalisés.
-// Les groupes ne sont récupérés que si le fournisseur utilise les durées par groupe.
-export async function handleCallback(provider, code) {
+// `withGroups` déclenche la récupération des groupes (durées par groupe activées).
+export async function handleCallback(provider, code, withGroups = false) {
   const accessToken = await exchangeCode(provider, code);
   const info = await fetchUserinfo(provider, accessToken);
   const map = USERINFO_MAP[provider.id] || ((j) => ({ email: j.email || null, name: j.name || null }));
   const { email, name } = map(info);
 
   let groups = [];
-  if (provider.useGroups) {
+  if (withGroups) {
     try {
       groups = await fetchGroups(provider, accessToken, email);
     } catch (err) {
