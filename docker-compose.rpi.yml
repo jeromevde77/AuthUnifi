@@ -1,0 +1,23 @@
+# Raspberry Pi — portail accessible sur le port 80, base SQLite dans ./data.
+#
+# Avant le tout premier lancement, créez le dossier de données :
+#     mkdir -p data
+# (sur Raspberry Pi OS, l'utilisateur par défaut a l'UID 1000, comme le
+#  conteneur, donc l'écriture dans ./data fonctionne. En cas d'erreur de
+#  permission : sudo chown -R 1000:1000 data)
+#
+# Lancer :
+#     docker compose -f docker-compose.rpi.yml up -d --build
+# (ou renommez ce fichier en docker-compose.yml pour pouvoir omettre le -f)
+
+services:
+  portal:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      # "PORT_DU_PI:PORT_INTERNE" — changez seulement le nombre de gauche.
+      # Laissez PORT non défini dans .env (le serveur écoute sur 3000 dedans).
+      - "80:3000"
+    volumes:
+      - ./data:/app/data

@@ -164,6 +164,10 @@ visible depuis File Station, conteneur en root pour éviter les soucis de
 permissions) ; dans Container Manager → Projet, renommez-le `docker-compose.yml`.
 Pour le HTTPS, le proxy inversé intégré de DSM suffit — pensez alors à `TRUST_PROXY=1`.
 
+**Raspberry Pi** : voir **[RASPBERRYPI.md](RASPBERRYPI.md)**. Le `docker-compose.rpi.yml`
+fait tourner le portail directement sur le **port 80** (pratique : le champ
+« External Portal Server » d'UniFi n'accepte qu'une IP, sans port).
+
 ## HTTPS / reverse-proxy (production)
 
 En production, placez le portail derrière un reverse-proxy HTTPS. Des exemples
