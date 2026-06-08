@@ -29,6 +29,10 @@ services:
       - seccomp:unconfined
     env_file: .env
     ports:
+      # Format "PORT_NAS:PORT_CONTENEUR". Pour changer le port d'accès sur le NAS,
+      # modifiez SEULEMENT le nombre de gauche (ex. "4000:3000"). Ne définissez PAS
+      # PORT dans .env, sauf à mettre la même valeur des deux côtés (ex. "4000:4000"
+      # avec PORT=4000) : le serveur écoute sur 3000 dans le conteneur par défaut.
       - "3000:3000"
     volumes:
       - ./data:/app/data
