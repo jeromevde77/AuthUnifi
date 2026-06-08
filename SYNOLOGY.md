@@ -68,8 +68,23 @@ git clone <url-du-depot> authunifi
 3. Renommez **`docker-compose.synology.yml` en `docker-compose.yml`**
    (l'assistant Projet de Container Manager attend ce nom exact).
 
-   Ce fichier place la base SQLite dans `./data` (visible depuis File Station) et
-   exécute le conteneur en root pour éviter les soucis de permissions.
+   Ce fichier **télécharge une image pré-construite** (il ne la construit pas sur
+   le NAS — voir l'encadré ci-dessous), place la base SQLite dans `./data`
+   (visible depuis File Station) et exécute le conteneur en root.
+
+> ### ⚠️ Important : on ne construit PAS l'image sur le NAS
+> Sur les Synology à noyau ancien, Docker ne peut exécuter aucune étape de build
+> (`RUN`) : le profil seccomp par défaut bloque la création du conteneur de build
+> et renvoie « OCI runtime create failed ». Cette option seccomp ne peut pas être
+> contournée au moment du build dans Container Manager.
+>
+> La solution : l'image est construite automatiquement par **GitHub Actions** et
+> publiée sur **ghcr.io** ; le NAS se contente de la **télécharger**. C'est ce que
+> fait le `docker-compose.synology.yml` (clé `image:` au lieu de `build:`).
+>
+> **Pré-requis unique** : rendez l'image publique. Sur GitHub → votre profil →
+> onglet **Packages** → **authunifi** → **Package settings** → **Change
+> visibility → Public**. Sinon le NAS ne pourra pas la tirer sans authentification.
 
 ---
 
@@ -79,8 +94,8 @@ git clone <url-du-depot> authunifi
 2. **Nom du projet** : `authunifi`.
 3. **Chemin** : sélectionnez `/docker/authunifi`.
 4. Container Manager détecte le `docker-compose.yml`. Validez.
-5. Il **construit l'image** (compilation automatique de `better-sqlite3`, peut
-   prendre quelques minutes la première fois) puis démarre le conteneur.
+5. Il **télécharge l'image** depuis ghcr.io (aucune construction locale) puis
+   démarre le conteneur.
 6. Vérifiez dans l'onglet **Conteneur** que `authunifi-portal` est **En cours**.
 
 Testez depuis un navigateur sur le réseau local : `http://IP_DU_NAS:3000`
@@ -88,7 +103,7 @@ Testez depuis un navigateur sur le réseau local : `http://IP_DU_NAS:3000`
 (identifiant `admin`, mot de passe = votre `ADMIN_TOKEN`).
 
 > **Port déjà pris ?** Si 3000 est utilisé, éditez `docker-compose.yml` :
-> `ports: ["3080:3000"]`, puis reconstruisez le projet. Le portail sera sur le 3080.
+> `ports: ["3080:3000"]`, puis redémarrez le projet. Le portail sera sur le 3080.
 
 ---
 
@@ -161,11 +176,19 @@ simplement `portal.db`. Le `.env` (configuration) mérite aussi une sauvegarde.
 
 ## 10. Mettre à jour le portail
 
-1. Remplacez les fichiers du code sur le NAS par la nouvelle version
-   (re-téléchargez le ZIP, ou `git pull`). **Ne touchez pas à `.env` ni au
-   dossier `data/`.**
-2. Container Manager → **Projet → authunifi → Construire** (rebuild), puis
-   redémarrez. La base SQLite et sa migration automatique sont conservées.
+Comme l'image est téléchargée (pas construite sur le NAS), une mise à jour =
+re-télécharger l'image publiée :
+
+1. Container Manager → **Image** → sélectionnez `ghcr.io/jeromevde77/authunifi`
+   → **Télécharger / Pull** la balise `latest` (ou supprimez l'image puis
+   re-tirez).
+2. Container Manager → **Projet → authunifi** → **Arrêter** puis **Démarrer**
+   (ou « Reconstruire » le projet) pour relancer le conteneur sur la nouvelle
+   image. La base SQLite (`./data`) et sa migration automatique sont conservées.
+
+> Le code est reconstruit côté GitHub à chaque push ; vous n'avez plus besoin de
+> recopier les fichiers source sur le NAS, seul le `docker-compose.yml` et le
+> `.env` y vivent.
 
 ---
 
@@ -174,7 +197,7 @@ simplement `portal.db`. Le `.env` (configuration) mérite aussi une sauvegarde.
 | Symptôme | Piste |
 |---|---|
 | Le projet ne se crée pas | Le fichier doit s'appeler exactement `docker-compose.yml` (§4.3). |
-| Build échoue : `OCI runtime create failed` / seccomp | Noyau Synology trop ancien pour la glibc récente. **Déjà corrigé** : l'image utilise Debian *bullseye* et le compte Synology ajoute `seccomp:unconfined`. Vérifiez que vous avez bien la dernière version du `Dockerfile` et du `docker-compose.synology.yml`, puis reconstruisez. |
+| `OCI runtime create failed` / seccomp au build | Le NAS ne peut pas construire l'image (voir encadré §4). Utilisez le `docker-compose.synology.yml` à jour (clé `image:` → téléchargement, pas de build) et rendez le package GHCR **public**. |
 | `EACCES` / permission denied sur la base | Le dossier `data/` n'est pas accessible en écriture. Le fichier Synology tourne en root pour éviter ça ; si vous l'avez retiré, rendez `data/` accessible à l'UID 1000. |
 | La page invité ne s'ouvre pas sur les téléphones | Vérifiez l'accès VLAN invité → NAS (§7) et l'allowlist de pré-autorisation. |
 | Erreur d'autorisation UniFi | Vérifiez `UNIFI_HOST/PORT/USERNAME/PASSWORD` et `UNIFI_SSL_VERIFY=false` pour un certificat auto-signé. Consultez les logs du conteneur. |

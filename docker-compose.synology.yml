@@ -1,26 +1,30 @@
-# Variante prête à l'emploi pour Synology (Container Manager → Projet).
+# Variante Synology : TÉLÉCHARGE une image pré-construite (pas de build local).
+#
+# Pourquoi : sur les NAS à noyau ancien, le profil seccomp par défaut empêche
+# Docker d'exécuter la moindre étape `RUN` pendant un build (erreur
+# « OCI runtime create failed »). On ne construit donc pas sur le NAS : l'image
+# est construite par GitHub Actions et publiée sur ghcr.io ; ici on la tire.
 #
 # Différences avec docker-compose.yml :
-#  - la base SQLite est dans un dossier local ./data (bind mount), donc visible
-#    et sauvegardable depuis File Station (au lieu d'un volume Docker nommé) ;
-#  - le conteneur tourne en root (user "0:0") pour écrire sans souci dans ce
-#    dossier monté, quel que soit son propriétaire — usage courant sur NAS en LAN.
-#    Si vous préférez le non-root, retirez la ligne `user` et assurez-vous que
-#    ./data appartient à l'UID 1000.
+#  - `image:` (téléchargement) au lieu de `build:` ;
+#  - `security_opt: seccomp:unconfined` pour démarrer sur le vieux noyau ;
+#  - base SQLite en bind mount ./data (visible/sauvegardable depuis File Station) ;
+#  - conteneur en root pour écrire sans souci dans ce dossier monté.
 #
-# Utilisation : placez ce dossier sur le NAS, créez le .env (cp .env.example .env).
-# Container Manager → Projet attend un fichier nommé "docker-compose.yml" : soit
-# vous renommez ce fichier en docker-compose.yml sur le NAS, soit vous collez son
-# contenu lors de la création du projet. Changez "3000:3000" si le port 3000 est
-# déjà pris sur le NAS (ex. "3080:3000").
+# Prérequis : l'image ghcr.io/jeromevde77/authunifi doit être PUBLIQUE
+# (GitHub → votre profil → Packages → authunifi → Package settings → Public),
+# sinon le NAS ne pourra pas la télécharger sans authentification.
+#
+# Utilisation : Container Manager → Projet attend un fichier nommé
+# "docker-compose.yml" : renommez ce fichier ainsi, ou collez son contenu.
+# Pour mettre à jour : Container Manager → image → tirez à nouveau "latest",
+# puis reconstruisez/redémarrez le projet.
 
 services:
   portal:
-    build: .
+    image: ghcr.io/jeromevde77/authunifi:latest
     restart: unless-stopped
     user: "0:0"
-    # Filet de sécurité pour les noyaux Synology anciens : désactive le filtre
-    # seccomp au runtime (l'image bullseye règle déjà le problème au build).
     security_opt:
       - seccomp:unconfined
     env_file: .env
