@@ -7,6 +7,7 @@ import { recordGuest, allGuests, guestStats } from './db.js';
 import { authorizeClient, extractParams } from './controller.js';
 import { signState, verifyState, buildAuthorizeUrl, handleCallback } from './oauth.js';
 import { enabledMethods, isEnabled, listMethods, setEnabled } from './methods.js';
+import { verifyLocalUser, listUsers, addUser, removeUser } from './localauth.js';
 import {
   durationForGroups, hasGroupRules, seedFromEnv,
   listRules, addRule, removeRule, groupProviderIds,
@@ -100,6 +101,38 @@ app.post('/authorize', async (req, res) => {
   });
 });
 
+// --- Connexion par compte local (email + mot de passe) — accès longue durée ---
+
+const renderLocal = (res, { params, error = null, status = 200 }) =>
+  res.status(status).render('local', {
+    config, params, error, showBack: enabledMethods().length > 1,
+  });
+
+// Formulaire email + mot de passe.
+app.get('/local', (req, res) => {
+  if (!isEnabled('local')) return res.status(404).send('Méthode compte désactivée');
+  renderLocal(res, { params: pickParams(req.query) });
+});
+
+// Soumission : vérifie les identifiants, autorise pour la durée du compte.
+app.post('/local/authorize', async (req, res) => {
+  if (!isEnabled('local')) return res.status(404).send('Méthode compte désactivée');
+  const params = pickParams(req.body);
+  const { email, password } = req.body;
+
+  const renderError = (message) => renderLocal(res, { params, error: message, status: 400 });
+
+  const minutes = verifyLocalUser(email, password);
+  if (minutes === null) {
+    return renderError('Email ou mot de passe incorrect.');
+  }
+
+  await finishLogin(res, {
+    params, email: email.trim().toLowerCase(), name: null,
+    method: 'local', liked: false, minutes, onError: renderError,
+  });
+});
+
 // --- Connexion via fournisseur OAuth2 (SmartSchool, Google, Microsoft 365) ---
 
 // Redirige vers le fournisseur, en embarquant les paramètres UniFi dans l'état signé.
@@ -157,6 +190,7 @@ app.get('/admin', requireAdmin, (req, res) => {
   res.render('admin', {
     config, stats: guestStats(), guests: allGuests(), methods: listMethods(),
     groupRules: listRules(), groupProviderIds, authMinutes: config.authMinutes,
+    localUsers: listUsers(),
     saved: req.query.saved === '1',
   });
 });
@@ -179,6 +213,18 @@ app.post('/admin/group-rules', requireAdmin, (req, res) => {
 // Supprime une règle de durée par groupe.
 app.post('/admin/group-rules/delete', requireAdmin, (req, res) => {
   removeRule(parseInt(req.body.id, 10));
+  res.redirect('/admin?saved=1');
+});
+
+// Crée (ou met à jour) un compte local email + mot de passe.
+app.post('/admin/local-users', requireAdmin, (req, res) => {
+  addUser(req.body.email, req.body.password, req.body.minutes);
+  res.redirect('/admin?saved=1');
+});
+
+// Supprime un compte local.
+app.post('/admin/local-users/delete', requireAdmin, (req, res) => {
+  removeUser(req.body.id);
   res.redirect('/admin?saved=1');
 });
 

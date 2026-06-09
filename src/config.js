@@ -122,6 +122,10 @@ export const config = {
 
   // Méthode email + like Facebook : état par défaut (surchargeable depuis l'admin).
   emailEnvEnabled: process.env.ENABLE_EMAIL !== 'false',
+
+  // Méthode compte local (email + mot de passe) : état par défaut. N'apparaît
+  // que si au moins un compte a été créé depuis l'admin.
+  localEnvEnabled: process.env.ENABLE_LOCAL !== 'false',
   facebookPageUrl: process.env.FACEBOOK_PAGE_URL || 'https://www.facebook.com',
 
   // Fournisseurs OAuth (SmartSchool, Google, Microsoft 365).

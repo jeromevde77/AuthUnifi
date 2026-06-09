@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title><%= config.portalName %></title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <main class="card">
+    <% if (config.portalLogoUrl) { %>
+      <img class="logo" src="<%= config.portalLogoUrl %>" alt="logo" />
+    <% } %>
+    <h1><%= config.portalName %></h1>
+    <p class="subtitle">Connexion avec votre compte.</p>
+
+    <% if (showBack) {
+      const qs = new URLSearchParams(
+        Object.fromEntries(Object.entries(params).filter(([, v]) => v))
+      ).toString();
+    %>
+      <p class="back-link"><a href="/<%= qs ? '?' + qs : '' %>">← Autre méthode de connexion</a></p>
+    <% } %>
+
+    <% if (error) { %>
+      <div class="error"><%= error %></div>
+    <% } %>
+
+    <form method="POST" action="/local/authorize" class="form">
+      <input type="hidden" name="clientMac" value="<%= params.clientMac || '' %>" />
+      <input type="hidden" name="apMac" value="<%= params.apMac || '' %>" />
+      <input type="hidden" name="ssid" value="<%= params.ssid || '' %>" />
+      <input type="hidden" name="radioId" value="<%= params.radioId || '' %>" />
+      <input type="hidden" name="site" value="<%= params.site || '' %>" />
+      <input type="hidden" name="redirectUrl" value="<%= params.redirectUrl || '' %>" />
+      <input type="hidden" name="t" value="<%= params.t || '' %>" />
+
+      <label for="email">Adresse email</label>
+      <input type="email" id="email" name="email" placeholder="vous@exemple.com" autocomplete="username" required />
+
+      <label for="password">Mot de passe</label>
+      <input type="password" id="password" name="password" autocomplete="current-password" required />
+
+      <button type="submit">Se connecter</button>
+    </form>
+  </main>
+</body>
+</html>

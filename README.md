@@ -4,6 +4,7 @@ Portail captif (hotspot public) pour contrôleurs **UniFi**. L'invité peut se
 connecter via **plusieurs méthodes**, chacune activable/désactivable :
 
 - **Email + like Facebook** — saisie de l'email et invitation à liker une page.
+- **Compte (email + mot de passe)** — pour autoriser certains utilisateurs plus longtemps.
 - **OAuth2** — connexion via **SmartSchool**, **Google** ou **Microsoft 365**.
 
 Toutes les méthodes aboutissent à l'autorisation de l'invité sur le contrôleur UniFi.
@@ -58,6 +59,7 @@ Chaque méthode s'active indépendamment :
 | Méthode | Activée si… | Désactiver |
 |---|---|---|
 | Email + Facebook | par défaut | `ENABLE_EMAIL=false` |
+| Compte (email + mot de passe) | au moins un compte créé dans l'admin | `ENABLE_LOCAL=false` |
 | SmartSchool | `SMARTSCHOOL_CLIENT_ID/SECRET/REDIRECT_URI` remplis | `ENABLE_SMARTSCHOOL=false` |
 | Google | `GOOGLE_CLIENT_ID/SECRET/REDIRECT_URI` remplis | `ENABLE_GOOGLE=false` |
 | Microsoft 365 | `MICROSOFT_CLIENT_ID/SECRET/REDIRECT_URI` remplis | `ENABLE_MICROSOFT=false` |
@@ -69,6 +71,18 @@ Les variables `ENABLE_*` ne fixent que **l'état par défaut**. Le **panneau adm
 (`/admin`) permet d'activer/désactiver chaque méthode déjà configurée **à chaud**,
 sans redémarrer ni éditer le `.env` (l'état est persisté en base). Les identifiants
 OAuth, eux, restent dans le `.env`.
+
+### Comptes (email + mot de passe) — accès longue durée
+
+Pour qu'un utilisateur précis se connecte **plus longtemps** que la durée par
+défaut, créez-lui un compte depuis le panneau admin (`/admin`, section
+« Comptes ») : **email**, **mot de passe** et **durée propre** (en minutes). Il
+se connectera ensuite via la méthode « Compte » avec ces identifiants, et sera
+autorisé pour la durée du compte (au lieu de `AUTH_MINUTES`).
+
+La méthode n'apparaît sur le portail que lorsqu'au moins un compte existe. Les
+mots de passe sont stockés hachés (scrypt) en base ; réutiliser un email existant
+met à jour son mot de passe et sa durée.
 
 ### Configurer un fournisseur OAuth
 
@@ -213,11 +227,12 @@ src/controller.js   Répartiteur UniFi/Omada + normalisation des paramètres
 src/unifi.js        Adaptateur UniFi (authorize-guest)
 src/omada.js        Adaptateur Omada (hotspot login + extPortal/auth)
 src/oauth.js        Flux OAuth2 générique + état signé (anti-CSRF)
+src/localauth.js    Comptes email + mot de passe (hash scrypt, vérif, CRUD admin)
 src/methods.js      Activation des méthodes (override admin ▸ défaut .env)
 src/groups.js       Règles de durée par groupe (table éditable + calcul)
-src/db.js           Stockage SQLite (invités, réglages) + statistiques
+src/db.js           Stockage SQLite (invités, réglages, comptes) + statistiques
 src/config.js       Chargement de la configuration (.env)
-views/              Pages EJS (choice, login, succès, admin)
+views/              Pages EJS (choice, login, local, succès, admin)
 public/             CSS
 Dockerfile          Image de production (multi-stage)
 docker-compose.yml  Déploiement conteneurisé + volume des données

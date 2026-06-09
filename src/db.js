@@ -119,6 +119,47 @@ export function countGroupRules() {
   return countGroupRulesStmt.get().n;
 }
 
+// --- Comptes locaux (email + mot de passe) pour un accès longue durée ---
+// Gérés depuis l'admin. Chaque compte a sa propre durée d'autorisation.
+
+db.exec(`
+  CREATE TABLE IF NOT EXISTS local_users (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    email      TEXT NOT NULL UNIQUE,
+    pass_hash  TEXT NOT NULL,
+    minutes    INTEGER NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+`);
+
+const listLocalUsersStmt = db.prepare(
+  'SELECT id, email, minutes, created_at FROM local_users ORDER BY email'
+);
+const getLocalUserStmt = db.prepare('SELECT * FROM local_users WHERE email = ?');
+const upsertLocalUserStmt = db.prepare(`
+  INSERT INTO local_users (email, pass_hash, minutes)
+  VALUES (@email, @pass_hash, @minutes)
+  ON CONFLICT(email) DO UPDATE SET pass_hash = @pass_hash, minutes = @minutes
+`);
+const deleteLocalUserStmt = db.prepare('DELETE FROM local_users WHERE id = ?');
+const countLocalUsersStmt = db.prepare('SELECT COUNT(*) AS n FROM local_users');
+
+export function listLocalUsers() {
+  return listLocalUsersStmt.all();
+}
+export function getLocalUser(email) {
+  return getLocalUserStmt.get(email);
+}
+export function upsertLocalUser({ email, passHash, minutes }) {
+  return upsertLocalUserStmt.run({ email, pass_hash: passHash, minutes });
+}
+export function deleteLocalUser(id) {
+  return deleteLocalUserStmt.run(id);
+}
+export function countLocalUsers() {
+  return countLocalUsersStmt.get().n;
+}
+
 const statsStmt = db.prepare(`
   SELECT
     COUNT(*) AS total,

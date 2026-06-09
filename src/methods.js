@@ -1,26 +1,32 @@
 import { config } from './config.js';
-import { getSetting, setSetting } from './db.js';
+import { getSetting, setSetting, countLocalUsers } from './db.js';
 
-// Méthode email (intégrée, sans identifiants à configurer).
+// Méthodes intégrées (sans identifiants OAuth à configurer).
 const EMAIL_META = { id: 'email', label: 'Email + Facebook', icon: '✉️', href: '/login' };
+const LOCAL_META = { id: 'local', label: 'Compte (email + mot de passe)', icon: '🔑', href: '/local' };
 
-// Tous les identifiants de méthodes : email + fournisseurs OAuth.
-const ALL_IDS = ['email', ...Object.keys(config.providers)];
+// Tous les identifiants de méthodes : intégrées + fournisseurs OAuth.
+const ALL_IDS = ['email', 'local', ...Object.keys(config.providers)];
 
 function meta(id) {
   if (id === 'email') return EMAIL_META;
+  if (id === 'local') return LOCAL_META;
   const p = config.providers[id];
   return { id, label: p.label, icon: p.icon, href: `/auth/${id}` };
 }
 
 // Une méthode est "configurée" si elle peut fonctionner (email : toujours ;
-// fournisseur : identifiants présents).
+// compte local : au moins un compte créé ; fournisseur : identifiants présents).
 function isConfigured(id) {
-  return id === 'email' ? true : Boolean(config.providers[id]?.configured);
+  if (id === 'email') return true;
+  if (id === 'local') return countLocalUsers() > 0;
+  return Boolean(config.providers[id]?.configured);
 }
 
 function envDefault(id) {
-  return id === 'email' ? config.emailEnvEnabled : Boolean(config.providers[id]?.envEnabled);
+  if (id === 'email') return config.emailEnvEnabled;
+  if (id === 'local') return config.localEnvEnabled;
+  return Boolean(config.providers[id]?.envEnabled);
 }
 
 // Activation effective : override admin (base) sinon défaut .env. Jamais si non configurée.

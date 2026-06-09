@@ -30,11 +30,49 @@
             <span class="method-icon"><%= m.icon %></span>
             <span class="method-label"><%= m.label %></span>
             <% if (!m.configured) { %>
-              <span class="method-note">identifiants manquants (.env)</span>
+              <span class="method-note"><%= m.id === 'local' ? 'aucun compte créé' : 'identifiants manquants (.env)' %></span>
             <% } %>
           </label>
         <% }) %>
         <button type="submit">Enregistrer</button>
+      </form>
+    </section>
+
+    <section class="panel">
+      <h2>Comptes (email + mot de passe)</h2>
+      <p class="panel-hint">
+        Comptes autorisés à se connecter plus longtemps via la méthode « Compte ».
+        Chaque compte a sa propre durée (en minutes). Réutiliser un email existant
+        met à jour son mot de passe et sa durée.
+      </p>
+
+      <table class="rules-table">
+        <thead><tr><th>Email</th><th>Minutes</th><th>Créé le</th><th></th></tr></thead>
+        <tbody>
+          <% if (localUsers.length === 0) { %>
+            <tr><td colspan="4" class="empty">Aucun compte. Ajoutez-en un pour activer la méthode.</td></tr>
+          <% } %>
+          <% localUsers.forEach((u) => { %>
+            <tr>
+              <td class="mono"><%= u.email %></td>
+              <td><%= u.minutes %></td>
+              <td class="mono"><%= u.created_at %></td>
+              <td>
+                <form method="POST" action="/admin/local-users/delete">
+                  <input type="hidden" name="id" value="<%= u.id %>" />
+                  <button type="submit" class="link-danger">Supprimer</button>
+                </form>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+
+      <form method="POST" action="/admin/local-users" class="rule-add">
+        <input type="email" name="email" placeholder="email" required />
+        <input type="password" name="password" placeholder="mot de passe" autocomplete="new-password" required />
+        <input type="number" name="minutes" min="1" placeholder="minutes" required />
+        <button type="submit">Ajouter</button>
       </form>
     </section>
 
@@ -97,7 +135,7 @@
               <td><%= g.name || '—' %></td>
               <%
                 const labels = {
-                  email: '✉️ Email', smartschool: '🎓 SmartSchool',
+                  email: '✉️ Email', local: '🔑 Compte', smartschool: '🎓 SmartSchool',
                   google: 'Ⓖ Google', microsoft: 'Ⓜ Microsoft 365',
                 };
               %>
