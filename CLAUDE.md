@@ -1,5 +1,36 @@
 # CLAUDE.md
 
+## Project: AuthUnifi
+
+A **captive portal** (public guest hotspot login page) for **UniFi** and **TP-Link
+Omada** controllers. A guest connects to the WiFi, the controller redirects them
+here, they authenticate, and the portal authorizes their device on the controller.
+
+**Login methods** (each can be enabled/disabled from the admin panel):
+- **Email + Facebook like** — collects an email and invites a page like.
+- **OAuth** — SmartSchool, Google, or Microsoft 365.
+
+**Features:** collected emails stored in SQLite; admin panel at `/admin` (view/export
+emails, toggle methods, manage access durations); per-group access duration (Google /
+Microsoft / SmartSchool group membership → custom duration).
+
+**Stack:** Node.js + Express + EJS + better-sqlite3 (no build step, ESM).
+
+**Key files:**
+- `src/server.js` — Express routes (portal, login, OAuth, admin).
+- `src/controller.js` — dispatches to `unifi.js` / `omada.js` per `CONTROLLER_TYPE`,
+  normalizes the controller's redirect params.
+- `src/oauth.js` — generic OAuth2 + group lookup. `src/groups.js` — duration rules.
+- `src/methods.js` — which login methods are enabled. `src/db.js` — SQLite.
+- `views/` — EJS pages. `public/styles.css` — UI.
+
+**Run:** `cp .env.example .env` (fill controller + Facebook + admin token), then
+`npm install && npm start` (or `docker compose up -d --build`).
+
+**Docs:** `README.md` (full config), `SYNOLOGY.md`, `RASPBERRYPI.md` (deployment).
+
+---
+
 Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-specific instructions as needed.
 
 **Tradeoff:** These guidelines bias toward caution over speed. For trivial tasks, use judgment.
