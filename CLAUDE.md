@@ -8,6 +8,8 @@ here, they authenticate, and the portal authorizes their device on the controlle
 
 **Login methods** (each can be enabled/disabled from the admin panel):
 - **Email + Facebook like** — collects an email and invites a page like.
+- **Local account (email + password)** — admin-managed accounts, each with its own
+  (longer) authorization duration.
 - **OAuth** — SmartSchool, Google, or Microsoft 365.
 
 **Features:** collected emails stored in SQLite; admin panel at `/admin` (view/export
