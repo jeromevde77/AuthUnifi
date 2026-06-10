@@ -113,7 +113,7 @@ async function fetchGroups(provider, accessToken, email) {
     );
   }
   if (provider.id === 'smartschool') {
-    const url = `https://oauth.smartschool.be/Api/V1/groupinfo?access_token=${encodeURIComponent(accessToken)}`;
+    const url = `${provider.groupinfoUrl}?access_token=${encodeURIComponent(accessToken)}`;
     const res = await fetch(url, {
       headers: { Authorization: `Bearer ${accessToken}`, Accept: 'application/json' },
     });

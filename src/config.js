@@ -17,6 +17,10 @@ function requiredFor(type, name) {
 // Définitions des fournisseurs OAuth disponibles. Les endpoints sont fixes ;
 // les identifiants viennent de l'environnement (<ID>_CLIENT_ID, etc.).
 const msTenant = process.env.MICROSOFT_TENANT || 'common';
+// Domaine de la plateforme SmartSchool de l'établissement. SmartSchool demande
+// d'adresser les requêtes à VOTRE plateforme (ex. https://smartschool.ecole.be),
+// pas à oauth.smartschool.be. Par défaut : la passerelle générique historique.
+const ssBase = (process.env.SMARTSCHOOL_BASE_URL || 'https://oauth.smartschool.be').replace(/\/+$/, '');
 const PROVIDER_DEFS = {
   smartschool: {
     label: 'Compte SmartSchool',
@@ -24,9 +28,10 @@ const PROVIDER_DEFS = {
     scope: 'userinfo',
     // Scope supplémentaire pour lire les groupes/classes (si des règles existent).
     groupScope: 'groupinfo',
-    authorizeUrl: 'https://oauth.smartschool.be/OAuth',
-    tokenUrl: 'https://oauth.smartschool.be/OAuth/index/token',
-    userinfoUrl: 'https://oauth.smartschool.be/Api/V1/userinfo',
+    authorizeUrl: `${ssBase}/OAuth`,
+    tokenUrl: `${ssBase}/OAuth/index/token`,
+    userinfoUrl: `${ssBase}/Api/V1/userinfo`,
+    groupinfoUrl: `${ssBase}/Api/V1/groupinfo`,
   },
   google: {
     label: 'Google',

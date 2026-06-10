@@ -91,8 +91,11 @@ Pour chaque fournisseur, renseignez `<NOM>_CLIENT_ID`, `<NOM>_CLIENT_SECRET` et
 en HTTPS, et déclarée côté fournisseur** ; elle suit toujours le format
 `https://votre-portail/auth/<fournisseur>/callback`.
 
-- **SmartSchool** — accès via https://www.smartschool.be/oauth/
-  (endpoints `oauth.smartschool.be`, scope `userinfo`).
+- **SmartSchool** — accès via https://www.smartschool.be/oauth/ (scope `userinfo`).
+  SmartSchool demande d'adresser les requêtes à **votre propre plateforme** et non à
+  `oauth.smartschool.be` : renseignez alors `SMARTSCHOOL_BASE_URL` avec l'URL de votre
+  établissement (ex. `https://smartschool.votre-ecole.be`). Laissé vide, le portail
+  utilise la passerelle générique `oauth.smartschool.be`.
 - **Google** — OAuth client « Web » sur https://console.cloud.google.com/.
 - **Microsoft 365** — app enregistrée sur https://entra.microsoft.com/
   (`MICROSOFT_TENANT` = `common` ou l'ID de votre tenant).
