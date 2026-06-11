@@ -1,0 +1,18 @@
+# Reverse-proxy HTTPS pour le portail. Certificat Let's Encrypt obtenu via le
+# challenge DNS-01 chez OVH (aucun port entrant nécessaire).
+#
+# Variables lues depuis le .env (passé au conteneur caddy) :
+#   PORTAL_DOMAIN            ex. smartschool.domobel.be
+#   OVH_ENDPOINT             ex. ovh-eu
+#   OVH_APPLICATION_KEY / OVH_APPLICATION_SECRET / OVH_CONSUMER_KEY  (token API OVH)
+{$PORTAL_DOMAIN} {
+    tls {
+        dns ovh {
+            endpoint {env.OVH_ENDPOINT}
+            application_key {env.OVH_APPLICATION_KEY}
+            application_secret {env.OVH_APPLICATION_SECRET}
+            consumer_key {env.OVH_CONSUMER_KEY}
+        }
+    }
+    reverse_proxy portal:3000
+}

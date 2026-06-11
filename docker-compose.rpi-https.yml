@@ -1,0 +1,39 @@
+# Raspberry Pi — portail en HTTPS derrière Caddy, certificat Let's Encrypt via
+# le DNS OVH (challenge DNS-01). Le portail n'est PAS exposé : seul Caddy écoute
+# (80/443). Tout reste sur le LAN, aucun port à ouvrir vers Internet.
+#
+# Prérequis :
+#   1. mkdir -p data
+#   2. Dans le .env : PORTAL_DOMAIN + bloc OVH_* + TRUST_PROXY=1 (voir .env.example)
+#   3. Enregistrement DNS chez OVH : smartschool.domobel.be  A  192.168.0.157 (IP du Pi)
+#
+# Lancer :
+#   docker compose -f docker-compose.rpi-https.yml up -d --build
+
+services:
+  portal:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    expose:
+      - "3000"
+    volumes:
+      - ./data:/app/data
+
+  caddy:
+    build:
+      context: ./deploy
+      dockerfile: Caddy.ovh.Dockerfile
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/Caddyfile.ovh:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+
+volumes:
+  caddy-data:
+  caddy-config:
