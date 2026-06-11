@@ -23,6 +23,7 @@
       <h2>Méthodes de connexion</h2>
       <% if (saved) { %><p class="saved">✓ Enregistré.</p><% } %>
       <form method="POST" action="/admin/methods">
+          <input type="hidden" name="token" value="<%= token %>" />
         <% methods.forEach((m) => { %>
           <label class="method-row <%= m.configured ? '' : 'disabled' %>">
             <input type="checkbox" name="method" value="<%= m.id %>"
@@ -59,6 +60,7 @@
               <td class="mono"><%= u.created_at %></td>
               <td>
                 <form method="POST" action="/admin/local-users/delete">
+          <input type="hidden" name="token" value="<%= token %>" />
                   <input type="hidden" name="id" value="<%= u.id %>" />
                   <button type="submit" class="link-danger">Supprimer</button>
                 </form>
@@ -69,6 +71,7 @@
       </table>
 
       <form method="POST" action="/admin/local-users" class="rule-add">
+          <input type="hidden" name="token" value="<%= token %>" />
         <input type="email" name="email" placeholder="email" required />
         <input type="password" name="password" placeholder="mot de passe" autocomplete="new-password" required />
         <input type="number" name="minutes" min="1" placeholder="minutes" required />
@@ -97,6 +100,7 @@
               <td><%= r.minutes %></td>
               <td>
                 <form method="POST" action="/admin/group-rules/delete">
+          <input type="hidden" name="token" value="<%= token %>" />
                   <input type="hidden" name="id" value="<%= r.id %>" />
                   <button type="submit" class="link-danger">Supprimer</button>
                 </form>
@@ -107,6 +111,7 @@
       </table>
 
       <form method="POST" action="/admin/group-rules" class="rule-add">
+          <input type="hidden" name="token" value="<%= token %>" />
         <select name="provider" required>
           <% groupProviderIds.forEach((id) => { %><option value="<%= id %>"><%= id %></option><% }) %>
         </select>
@@ -123,6 +128,7 @@
       <% if (guests.some((g) => g.mac)) { %>
         <form method="POST" action="/admin/guests/unauthorize-all" style="margin:0 0 12px"
               onsubmit="return confirm('Déconnecter TOUS les invités du hotspot ?')">
+          <input type="hidden" name="token" value="<%= token %>" />
           <button type="submit" class="link-danger">⎋ Déconnecter tout le monde</button>
         </form>
       <% } %>
@@ -154,7 +160,8 @@
               <td>
                 <% if (g.mac) { %>
                 <form method="POST" action="/admin/guests/unauthorize" style="margin:0"
-                      onsubmit="return confirm('Déconnecter <%= g.mac %> ?')">
+                      onsubmit="return confirm('Déconnecter <%= g.mac %>
+          <input type="hidden" name="token" value="<%= token %>" /> ?')">
                   <input type="hidden" name="mac" value="<%= g.mac %>" />
                   <button type="submit" class="link-danger">Déconnecter</button>
                 </form>

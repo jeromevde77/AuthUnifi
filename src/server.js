@@ -175,7 +175,7 @@ function requireAdmin(req, res, next) {
   if (!config.adminToken) {
     return res.status(503).send('Admin désactivé : définissez ADMIN_TOKEN.');
   }
-  if (req.query.token === config.adminToken) return next();
+  if (req.query.token === config.adminToken || req.body.token === config.adminToken) return next();
 
   const [scheme, encoded] = (req.headers.authorization || '').split(' ');
   if (scheme === 'Basic' && encoded) {
@@ -184,6 +184,16 @@ function requireAdmin(req, res, next) {
   }
   res.set('WWW-Authenticate', 'Basic realm="AuthUnifi Admin"');
   return res.status(401).send('Authentification requise');
+}
+
+// Redirige vers /admin en conservant le token (mode ?token= dans l'URL),
+// sinon le retour reperdrait l'authentification après un POST.
+function adminRedirect(req, res, params = {}) {
+  const token = req.body.token || req.query.token;
+  const qs = new URLSearchParams(params);
+  if (token) qs.set('token', token);
+  const s = qs.toString();
+  res.redirect('/admin' + (s ? '?' + s : ''));
 }
 
 // Tableau de bord admin : méthodes, durées par groupe et emails collectés.
@@ -195,6 +205,7 @@ app.get('/admin', requireAdmin, (req, res) => {
     saved: req.query.saved === '1',
     kicked: req.query.kicked || null,
     kickError: req.query.kick_error || null,
+    token: req.query.token || '',
   });
 });
 
@@ -206,11 +217,11 @@ app.post('/admin/guests/unauthorize-all', requireAdmin, async (req, res) => {
     const { total, ok, failed } = await unauthorizeAllClients();
     const msg = `${ok}/${total} déconnecté(s)${failed ? `, ${failed} échec(s)` : ''}`;
     if (req.query.format === 'text') return res.type('text').send(msg + '\n');
-    res.redirect('/admin?kicked=' + encodeURIComponent(msg));
+    adminRedirect(req, res, { kicked: msg });
   } catch (err) {
     console.error('Échec de la déconnexion globale :', err.message);
     if (req.query.format === 'text') return res.status(500).type('text').send(err.message + '\n');
-    res.redirect('/admin?kick_error=' + encodeURIComponent(err.message));
+    adminRedirect(req, res, { kick_error: err.message });
   }
 });
 
@@ -218,13 +229,13 @@ app.post('/admin/guests/unauthorize-all', requireAdmin, async (req, res) => {
 // Le portail captif se réaffichera à sa prochaine navigation.
 app.post('/admin/guests/unauthorize', requireAdmin, async (req, res) => {
   const mac = (req.body.mac || '').trim();
-  if (!mac) return res.redirect('/admin?kick_error=' + encodeURIComponent('MAC manquante'));
+  if (!mac) return adminRedirect(req, res, { kick_error: 'MAC manquante' });
   try {
     await unauthorizeClient(mac);
-    res.redirect('/admin?kicked=' + encodeURIComponent(mac));
+    adminRedirect(req, res, { kicked: mac });
   } catch (err) {
     console.error('Échec de la déconnexion :', err.message);
-    res.redirect('/admin?kick_error=' + encodeURIComponent(err.message));
+    adminRedirect(req, res, { kick_error: err.message });
   }
 });
 
@@ -234,31 +245,31 @@ app.post('/admin/methods', requireAdmin, (req, res) => {
   for (const m of listMethods()) {
     if (m.configured) setEnabled(m.id, checked.includes(m.id));
   }
-  res.redirect('/admin?saved=1');
+  adminRedirect(req, res, { saved: '1' });
 });
 
 // Ajoute (ou met à jour) une règle de durée par groupe.
 app.post('/admin/group-rules', requireAdmin, (req, res) => {
   addRule(req.body.provider, req.body.group_key, req.body.minutes);
-  res.redirect('/admin?saved=1');
+  adminRedirect(req, res, { saved: '1' });
 });
 
 // Supprime une règle de durée par groupe.
 app.post('/admin/group-rules/delete', requireAdmin, (req, res) => {
   removeRule(parseInt(req.body.id, 10));
-  res.redirect('/admin?saved=1');
+  adminRedirect(req, res, { saved: '1' });
 });
 
 // Crée (ou met à jour) un compte local email + mot de passe.
 app.post('/admin/local-users', requireAdmin, (req, res) => {
   addUser(req.body.email, req.body.password, req.body.minutes);
-  res.redirect('/admin?saved=1');
+  adminRedirect(req, res, { saved: '1' });
 });
 
 // Supprime un compte local.
 app.post('/admin/local-users/delete', requireAdmin, (req, res) => {
   removeUser(req.body.id);
-  res.redirect('/admin?saved=1');
+  adminRedirect(req, res, { saved: '1' });
 });
 
 // Export CSV des emails collectés.
