@@ -2,8 +2,8 @@ import { config } from './config.js';
 import { getSetting, setSetting, countLocalUsers } from './db.js';
 
 // Méthodes intégrées (sans identifiants OAuth à configurer).
-const EMAIL_META = { id: 'email', label: 'Email + Facebook', icon: '✉️', href: '/login' };
-const LOCAL_META = { id: 'local', label: 'Compte (email + mot de passe)', icon: '🔑', href: '/local' };
+const EMAIL_META = { id: 'email', label: 'Email + Facebook', icon: '/static/icons/facebook.svg', href: '/login' };
+const LOCAL_META = { id: 'local', label: 'Compte (email + mot de passe)', icon: '/static/icons/account.svg', href: '/local' };
 
 // Tous les identifiants de méthodes : intégrées + fournisseurs OAuth.
 const ALL_IDS = ['email', 'local', ...Object.keys(config.providers)];

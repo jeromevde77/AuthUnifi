@@ -27,7 +27,7 @@
           <label class="method-row <%= m.configured ? '' : 'disabled' %>">
             <input type="checkbox" name="method" value="<%= m.id %>"
               <%= m.enabled ? 'checked' : '' %> <%= m.configured ? '' : 'disabled' %> />
-            <span class="method-icon"><%= m.icon %></span>
+            <img class="method-icon" src="<%= m.icon %>" alt="" />
             <span class="method-label"><%= m.label %></span>
             <% if (!m.configured) { %>
               <span class="method-note"><%= m.id === 'local' ? 'aucun compte créé' : 'identifiants manquants (.env)' %></span>
@@ -118,15 +118,17 @@
     <% } %>
 
     <div class="table-wrap">
+      <% if (kicked) { %><p class="saved">✓ Appareil <%= kicked %> déconnecté.</p><% } %>
+      <% if (kickError) { %><p class="error">Déconnexion impossible : <%= kickError %></p><% } %>
       <table>
         <thead>
           <tr>
-            <th>#</th><th>Email</th><th>Nom</th><th>Méthode</th><th>MAC</th><th>Liké</th><th>Date</th>
+            <th>#</th><th>Email</th><th>Nom</th><th>Méthode</th><th>MAC</th><th>Liké</th><th>Date</th><th></th>
           </tr>
         </thead>
         <tbody>
           <% if (guests.length === 0) { %>
-            <tr><td colspan="7" class="empty">Aucun invité enregistré pour l'instant.</td></tr>
+            <tr><td colspan="8" class="empty">Aucun invité enregistré pour l'instant.</td></tr>
           <% } %>
           <% guests.forEach((g) => { %>
             <tr>
@@ -143,6 +145,15 @@
               <td class="mono"><%= g.mac || '—' %></td>
               <td><%= g.liked ? '✓' : '—' %></td>
               <td class="mono"><%= g.created_at %></td>
+              <td>
+                <% if (g.mac) { %>
+                <form method="POST" action="/admin/guests/unauthorize" style="margin:0"
+                      onsubmit="return confirm('Déconnecter <%= g.mac %> ?')">
+                  <input type="hidden" name="mac" value="<%= g.mac %>" />
+                  <button type="submit" class="link-danger">Déconnecter</button>
+                </form>
+                <% } %>
+              </td>
             </tr>
           <% }) %>
         </tbody>

@@ -24,7 +24,7 @@ const ssBase = (process.env.SMARTSCHOOL_BASE_URL || 'https://oauth.smartschool.b
 const PROVIDER_DEFS = {
   smartschool: {
     label: 'Compte SmartSchool',
-    icon: '🎓',
+    icon: '/static/icons/smartschool.svg',
     scope: 'userinfo',
     // Scope supplémentaire pour lire les groupes/classes (si des règles existent).
     groupScope: 'groupinfo',
@@ -35,7 +35,7 @@ const PROVIDER_DEFS = {
   },
   google: {
     label: 'Google',
-    icon: 'G',
+    icon: '/static/icons/google.svg',
     scope: 'openid email profile',
     // Scope supplémentaire requis pour lire les groupes (si GROUP_DURATIONS défini).
     groupScope: 'https://www.googleapis.com/auth/cloud-identity.groups.readonly',
@@ -45,7 +45,7 @@ const PROVIDER_DEFS = {
   },
   microsoft: {
     label: 'Microsoft 365',
-    icon: 'M',
+    icon: '/static/icons/microsoft.svg',
     scope: 'openid email profile',
     // Scope supplémentaire requis pour lire les groupes (consentement admin).
     groupScope: 'GroupMember.Read.All',

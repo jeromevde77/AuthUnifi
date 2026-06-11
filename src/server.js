@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { config } from './config.js';
 import { recordGuest, allGuests, guestStats } from './db.js';
-import { authorizeClient, extractParams } from './controller.js';
+import { authorizeClient, unauthorizeClient, extractParams } from './controller.js';
 import { signState, verifyState, buildAuthorizeUrl, handleCallback } from './oauth.js';
 import { enabledMethods, isEnabled, listMethods, setEnabled } from './methods.js';
 import { verifyLocalUser, listUsers, addUser, removeUser } from './localauth.js';
@@ -193,7 +193,23 @@ app.get('/admin', requireAdmin, (req, res) => {
     groupRules: listRules(), groupProviderIds, authMinutes: config.authMinutes,
     localUsers: listUsers(),
     saved: req.query.saved === '1',
+    kicked: req.query.kicked || null,
+    kickError: req.query.kick_error || null,
   });
+});
+
+// Déconnecte un appareil : révoque son autorisation sur le contrôleur.
+// Le portail captif se réaffichera à sa prochaine navigation.
+app.post('/admin/guests/unauthorize', requireAdmin, async (req, res) => {
+  const mac = (req.body.mac || '').trim();
+  if (!mac) return res.redirect('/admin?kick_error=' + encodeURIComponent('MAC manquante'));
+  try {
+    await unauthorizeClient(mac);
+    res.redirect('/admin?kicked=' + encodeURIComponent(mac));
+  } catch (err) {
+    console.error('Échec de la déconnexion :', err.message);
+    res.redirect('/admin?kick_error=' + encodeURIComponent(err.message));
+  }
 });
 
 // Active/désactive les méthodes de connexion (cases cochées = activées).

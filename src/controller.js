@@ -9,6 +9,14 @@ export function authorizeClient(params, minutes) {
   return impl.authorize(params, minutes);
 }
 
+// Révoque l'autorisation d'un client (déconnexion forcée depuis l'admin).
+export function unauthorizeClient(mac) {
+  if (!impl.unauthorize) {
+    throw new Error(`Déconnexion non supportée pour le contrôleur ${config.controllerType}`);
+  }
+  return impl.unauthorize(mac);
+}
+
 // Traduit les paramètres de redirection du contrôleur vers un format normalisé.
 // Appelé uniquement sur le premier hop (le contrôleur redirige vers "/").
 export function extractParams(q) {

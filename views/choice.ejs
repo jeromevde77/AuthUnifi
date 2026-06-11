@@ -23,7 +23,7 @@
 
     <% methods.forEach((m) => { %>
       <a class="choice-btn <%= m.id %>" href="<%= m.href %><%= suffix %>">
-        <span class="choice-icon"><%= m.icon %></span>
+        <img class="choice-icon" src="<%= m.icon %>" alt="" />
         <span><strong><%= m.label %></strong></span>
       </a>
     <% }) %>

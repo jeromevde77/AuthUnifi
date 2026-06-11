@@ -27,3 +27,26 @@ export async function authorize(params, minutes) {
     await controller.logout().catch(() => {});
   }
 }
+
+/**
+ * Révoque l'autorisation d'un appareil invité (le portail captif se réaffichera).
+ *
+ * @param {string} mac Adresse MAC du client
+ */
+export async function unauthorize(mac) {
+  const controller = new Controller({
+    host: config.unifi.host,
+    port: config.unifi.port,
+    username: config.unifi.username,
+    password: config.unifi.password,
+    site: config.unifi.site,
+    sslverify: config.unifi.sslverify,
+  });
+
+  await controller.login();
+  try {
+    await controller.unauthorizeGuest(mac);
+  } finally {
+    await controller.logout().catch(() => {});
+  }
+}
