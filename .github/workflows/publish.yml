@@ -1,8 +1,12 @@
-name: Publier l'image Docker (GHCR)
+name: Publier les images Docker (GHCR)
 
-# Construit l'image sur un runner GitHub (noyau récent) et la publie sur
-# ghcr.io, pour les hôtes qui ne peuvent pas la construire eux-mêmes (ex. NAS
-# Synology à noyau ancien). Multi-arch amd64 + arm64.
+# Construit les images sur un runner GitHub (rapide, multi-arch amd64 + arm64) et
+# les publie sur ghcr.io, pour les hôtes qui ne peuvent pas / ne veulent pas les
+# construire eux-mêmes (NAS Synology à noyau ancien, Raspberry Pi lent…).
+#
+# Deux images :
+#   - authunifi        : le portail (Node + better-sqlite3)
+#   - authunifi-caddy  : Caddy + plugin DNS OVH (pour le HTTPS local DNS-01)
 
 on:
   push:
@@ -16,6 +20,13 @@ permissions:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - file: Dockerfile
+            image: ghcr.io/jeromevde77/authunifi
+          - file: deploy/Caddy.ovh.Dockerfile
+            image: ghcr.io/jeromevde77/authunifi-caddy
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-qemu-action@v3
@@ -28,6 +39,7 @@ jobs:
       - uses: docker/build-push-action@v6
         with:
           context: .
+          file: ${{ matrix.file }}
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: ghcr.io/jeromevde77/authunifi:latest
+          tags: ${{ matrix.image }}:latest

@@ -2,17 +2,23 @@
 # le DNS OVH (challenge DNS-01). Le portail n'est PAS exposé : seul Caddy écoute
 # (80/443). Tout reste sur le LAN, aucun port à ouvrir vers Internet.
 #
-# Prérequis :
+# Les images sont CONSTRUITES PAR GITHUB ACTIONS et tirées depuis ghcr.io (rien
+# n'est compilé sur le Pi). Prérequis : les deux packages GHCR doivent être PUBLICS
+# (GitHub → Packages → authunifi / authunifi-caddy → Package settings → Public),
+# sinon faites `docker login ghcr.io` sur le Pi avant le pull.
+#
+# Mise en place :
 #   1. mkdir -p data
 #   2. Dans le .env : PORTAL_DOMAIN + bloc OVH_* + TRUST_PROXY=1 (voir .env.example)
 #   3. Enregistrement DNS chez OVH : smartschool.domobel.be  A  192.168.0.157 (IP du Pi)
 #
-# Lancer :
-#   docker compose -f docker-compose.rpi-https.yml up -d --build
+# Lancer (pull + démarrage, sans build) :
+#   docker compose -f docker-compose.rpi-https.yml pull
+#   docker compose -f docker-compose.rpi-https.yml up -d
 
 services:
   portal:
-    build: .
+    image: ghcr.io/jeromevde77/authunifi:latest
     restart: unless-stopped
     env_file: .env
     expose:
@@ -21,9 +27,7 @@ services:
       - ./data:/app/data
 
   caddy:
-    build:
-      context: ./deploy
-      dockerfile: Caddy.ovh.Dockerfile
+    image: ghcr.io/jeromevde77/authunifi-caddy:latest
     restart: unless-stopped
     env_file: .env
     ports:

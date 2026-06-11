@@ -156,11 +156,17 @@ TRUST_PROXY=1
 et faites pointer les `*_REDIRECT_URI` OAuth vers ce domaine
 (`https://smartschool.domobel.be/auth/<fournisseur>/callback`).
 
-**d. Lancer** (remplace le compose du §7) :
+**d. Lancer** (remplace le compose du §7) — les images sont construites par GitHub
+Actions et **tirées depuis ghcr.io**, rien n'est compilé sur le Pi :
 ```bash
-docker compose -f docker-compose.rpi-https.yml up -d --build
+docker compose -f docker-compose.rpi-https.yml pull
+docker compose -f docker-compose.rpi-https.yml up -d
 docker compose -f docker-compose.rpi-https.yml logs -f caddy   # « certificate obtained »
 ```
+> Prérequis : les packages GHCR `authunifi` et `authunifi-caddy` doivent être
+> **publics** (GitHub → Packages → … → *Package settings → Change visibility →
+> Public*). Sinon, `docker login ghcr.io` sur le Pi avant le `pull`.
+
 Testez depuis un appareil du LAN : `https://smartschool.domobel.be/` avec cadenas valide.
 
 **e. UniFi** — mettez le **domaine** `smartschool.domobel.be` comme External Portal
