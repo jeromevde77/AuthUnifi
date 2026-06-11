@@ -118,53 +118,59 @@ conteneur automatiquement (y compris après une coupure de courant).
 
 ---
 
-## 11. HTTPS (nécessaire pour SmartSchool / Google / Microsoft)
+## 11. HTTPS (nécessaire pour SmartSchool / Google / Microsoft et UniFi)
 
-Les fournisseurs OAuth exigent une URL de redirection en **HTTPS public**. Le plus
-simple sur le Pi est **Caddy** (certificat Let's Encrypt automatique). Il faut un
-**nom de domaine** (ou DDNS) pointant vers votre IP publique, et une **redirection
-de port 80+443** sur votre box/routeur vers le Pi.
+Les fournisseurs OAuth exigent une URL de redirection en **HTTPS**, et UniFi
+(Network 9.x / UDR7) redirige le captive portal en HTTPS. Il faut donc un
+**certificat valide** — impossible pour une IP nue, il faut un **nom de domaine**.
 
-Remplacez le lancement du §7 par un compose qui ajoute Caddy devant le portail —
-créez `docker-compose.https.yml` :
+La méthode ci-dessous garde le Pi **100 % sur le LAN** (aucun port à ouvrir vers
+Internet) grâce au challenge **DNS-01** : Caddy prouve la possession du domaine via
+un enregistrement DNS, pas via un port entrant. Exemple avec un domaine géré chez
+**OVH** (`smartschool.domobel.be` → IP locale du Pi).
 
-```yaml
-services:
-  portal:
-    build: .
-    restart: unless-stopped
-    env_file: .env
-    expose:
-      - "3000"               # plus publié sur 80 : Caddy s'en charge
-    volumes:
-      - ./data:/app/data
-  caddy:
-    image: caddy:2
-    restart: unless-stopped
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile
-      - caddy_data:/data
-volumes:
-  caddy_data:
+Les fichiers sont déjà fournis : `docker-compose.rpi-https.yml`,
+`deploy/Caddyfile.ovh`, `deploy/Caddy.ovh.Dockerfile`.
+
+**a. Token API OVH** — sur https://api.ovh.com/createToken/, droits sur la zone DNS :
 ```
+GET POST PUT DELETE   /domain/zone/*
+```
+OVH renvoie *Application Key*, *Application Secret*, *Consumer Key*.
 
-Avec un fichier `Caddyfile` à côté :
+**b. Enregistrement DNS** — chez OVH, zone du domaine, ajoutez un type **A** :
 ```
-portail.mondomaine.be {
-    reverse_proxy portal:3000
-}
+smartschool   A   192.168.0.50        # l'IP LOCALE du Pi
 ```
-Ajoutez `TRUST_PROXY=1` dans le `.env`, puis :
+(Une IP privée dans le DNS public est normal : seuls les appareils du LAN
+l'utiliseront. Let's Encrypt ne vérifie que l'enregistrement TXT, pas le A.)
+
+**c. `.env`** — ajoutez :
+```
+PORTAL_DOMAIN=smartschool.domobel.be
+OVH_ENDPOINT=ovh-eu
+OVH_APPLICATION_KEY=...
+OVH_APPLICATION_SECRET=...
+OVH_CONSUMER_KEY=...
+TRUST_PROXY=1
+```
+et faites pointer les `*_REDIRECT_URI` OAuth vers ce domaine
+(`https://smartschool.domobel.be/auth/<fournisseur>/callback`).
+
+**d. Lancer** (remplace le compose du §7) :
 ```bash
-docker compose -f docker-compose.https.yml up -d --build
+docker compose -f docker-compose.rpi-https.yml up -d --build
+docker compose -f docker-compose.rpi-https.yml logs -f caddy   # « certificate obtained »
 ```
-Déclarez ensuite chez chaque fournisseur l'URL
-`https://portail.mondomaine.be/auth/<fournisseur>/callback`, et reportez-la dans
-le `.env` (voir le README principal). Dans UniFi, mettez le domaine HTTPS comme
-portail externe.
+Testez depuis un appareil du LAN : `https://smartschool.domobel.be/` avec cadenas valide.
+
+**e. UniFi** — mettez le **domaine** `smartschool.domobel.be` comme External Portal
+Server, activez « Redirect using HTTPS », et pré-autorisez ce domaine + ceux des
+fournisseurs (`collegedavinci.smartschool.be`, `login.microsoftonline.com`…).
+
+> **Astuce DNS local** : depuis un appareil du LAN, `ping smartschool.domobel.be`
+> doit répondre `192.168.0.50`. Si votre réseau active une protection « DNS rebind »,
+> autorisez ce domaine (sinon les réponses pointant vers une IP privée sont filtrées).
 
 ---
 
@@ -180,9 +186,19 @@ dossier (copie, `rsync`, ou une tâche cron). Sauvegardez aussi le `.env`.
 ```bash
 cd authunifi
 git pull
+# HTTP simple :
 docker compose -f docker-compose.rpi.yml up -d --build
+# ou, en HTTPS (Caddy + OVH, §11) :
+docker compose -f docker-compose.rpi-https.yml up -d --build
 ```
 La base SQLite (`./data`) et sa migration automatique sont conservées.
+
+> **Passage de HTTP à HTTPS** : arrêtez d'abord l'ancien stack pour libérer le
+> port 80, puis lancez le nouveau :
+> ```bash
+> docker compose -f docker-compose.rpi.yml down
+> docker compose -f docker-compose.rpi-https.yml up -d --build
+> ```
 
 ---
 
