@@ -61,8 +61,9 @@ async function finishLogin(res, { params, email, name, method, liked, minutes, o
 }
 
 // Page du portail : le contrôleur redirige ici avec ses paramètres en query.
-// Affiche le choix des méthodes activées ; redirige si une seule est activée.
-app.get('/', (req, res) => {
+// UniFi redirige vers /guest/s/<site>/ ; on sert la même page à la racine et à
+// ce chemin. Affiche le choix des méthodes activées ; redirige si une seule l'est.
+app.get(['/', '/guest/s/:site'], (req, res) => {
   const params = extractParams(req.query);
   const methods = enabledMethods();
   if (methods.length === 0) {
