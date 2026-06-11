@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { config } from './config.js';
 import { recordGuest, allGuests, guestStats } from './db.js';
-import { authorizeClient, unauthorizeClient, extractParams } from './controller.js';
+import { authorizeClient, unauthorizeClient, unauthorizeAllClients, extractParams } from './controller.js';
 import { signState, verifyState, buildAuthorizeUrl, handleCallback } from './oauth.js';
 import { enabledMethods, isEnabled, listMethods, setEnabled } from './methods.js';
 import { verifyLocalUser, listUsers, addUser, removeUser } from './localauth.js';
@@ -196,6 +196,22 @@ app.get('/admin', requireAdmin, (req, res) => {
     kicked: req.query.kicked || null,
     kickError: req.query.kick_error || null,
   });
+});
+
+// Déconnecte TOUS les invités : révoque toutes les autorisations actives.
+// Pratique pour repartir d'une ardoise vierge (tests, fin de journée).
+// Déclenchable aussi en SSH : curl -X POST "https://<portail>/admin/guests/unauthorize-all?token=ADMIN_TOKEN"
+app.post('/admin/guests/unauthorize-all', requireAdmin, async (req, res) => {
+  try {
+    const { total, ok, failed } = await unauthorizeAllClients();
+    const msg = `${ok}/${total} déconnecté(s)${failed ? `, ${failed} échec(s)` : ''}`;
+    if (req.query.format === 'text') return res.type('text').send(msg + '\n');
+    res.redirect('/admin?kicked=' + encodeURIComponent(msg));
+  } catch (err) {
+    console.error('Échec de la déconnexion globale :', err.message);
+    if (req.query.format === 'text') return res.status(500).type('text').send(err.message + '\n');
+    res.redirect('/admin?kick_error=' + encodeURIComponent(err.message));
+  }
 });
 
 // Déconnecte un appareil : révoque son autorisation sur le contrôleur.

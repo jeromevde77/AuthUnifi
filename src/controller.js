@@ -17,6 +17,14 @@ export function unauthorizeClient(mac) {
   return impl.unauthorize(mac);
 }
 
+// Dé-autorise tous les invités actuellement autorisés (déconnexion globale).
+export function unauthorizeAllClients() {
+  if (!impl.unauthorizeAll) {
+    throw new Error(`Déconnexion globale non supportée pour le contrôleur ${config.controllerType}`);
+  }
+  return impl.unauthorizeAll();
+}
+
 // Traduit les paramètres de redirection du contrôleur vers un format normalisé.
 // Appelé uniquement sur le premier hop (le contrôleur redirige vers "/").
 export function extractParams(q) {

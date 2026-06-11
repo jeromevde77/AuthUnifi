@@ -118,8 +118,14 @@
     <% } %>
 
     <div class="table-wrap">
-      <% if (kicked) { %><p class="saved">✓ Appareil <%= kicked %> déconnecté.</p><% } %>
+      <% if (kicked) { %><p class="saved">✓ <%= kicked %></p><% } %>
       <% if (kickError) { %><p class="error">Déconnexion impossible : <%= kickError %></p><% } %>
+      <% if (guests.some((g) => g.mac)) { %>
+        <form method="POST" action="/admin/guests/unauthorize-all" style="margin:0 0 12px"
+              onsubmit="return confirm('Déconnecter TOUS les invités du hotspot ?')">
+          <button type="submit" class="link-danger">⎋ Déconnecter tout le monde</button>
+        </form>
+      <% } %>
       <table>
         <thead>
           <tr>

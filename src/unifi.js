@@ -50,3 +50,38 @@ export async function unauthorize(mac) {
     await controller.logout().catch(() => {});
   }
 }
+
+/**
+ * Dé-autorise TOUS les invités actuellement autorisés (déconnexion globale).
+ *
+ * @returns {Promise<{total:number, ok:number, failed:number}>}
+ */
+export async function unauthorizeAll() {
+  const controller = new Controller({
+    host: config.unifi.host,
+    port: config.unifi.port,
+    username: config.unifi.username,
+    password: config.unifi.password,
+    site: config.unifi.site,
+    sslverify: config.unifi.sslverify,
+  });
+
+  await controller.login();
+  try {
+    const guests = await controller.getGuests();
+    const macs = [...new Set((guests || []).map((g) => g.mac).filter(Boolean))];
+    let ok = 0;
+    let failed = 0;
+    for (const mac of macs) {
+      try {
+        await controller.unauthorizeGuest(mac);
+        ok += 1;
+      } catch {
+        failed += 1;
+      }
+    }
+    return { total: macs.length, ok, failed };
+  } finally {
+    await controller.logout().catch(() => {});
+  }
+}
