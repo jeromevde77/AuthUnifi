@@ -54,9 +54,8 @@ Vérifiez : `docker run --rm hello-world`.
 ```bash
 git clone https://github.com/jeromevde77/AuthUnifi.git authunifi
 cd authunifi
-git checkout claude/admiring-hopper-ClmEz
 ```
-*(ou téléchargez le ZIP de la branche et copiez-le sur le Pi)*
+*(la branche `main` est récupérée par défaut ; ou téléchargez le ZIP et copiez-le sur le Pi)*
 
 ---
 
