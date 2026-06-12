@@ -25,6 +25,13 @@ export function unauthorizeAllClients() {
   return impl.unauthorizeAll();
 }
 
+// Liste les MAC des invités actuellement autorisés sur le contrôleur.
+// Renvoie null si le contrôleur ne le supporte pas (ex. Omada).
+export function activeGuestMacs() {
+  if (!impl.activeGuests) return null;
+  return impl.activeGuests();
+}
+
 // Traduit les paramètres de redirection du contrôleur vers un format normalisé.
 // Appelé uniquement sur le premier hop (le contrôleur redirige vers "/").
 export function extractParams(q) {

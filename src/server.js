@@ -11,7 +11,7 @@ import {
   issueSession, clearSession, hasValidSession,
 } from './adminauth.js';
 import { recordGuest, allGuests, guestStats } from './db.js';
-import { authorizeClient, unauthorizeClient, unauthorizeAllClients, extractParams } from './controller.js';
+import { authorizeClient, unauthorizeClient, unauthorizeAllClients, extractParams, activeGuestMacs } from './controller.js';
 import { signState, verifyState, buildAuthorizeUrl, handleCallback } from './oauth.js';
 import { enabledMethods, isEnabled, listMethods, setEnabled } from './methods.js';
 import { verifyLocalUser, listUsers, addUser, removeUser } from './localauth.js';
@@ -281,14 +281,50 @@ app.post('/admin/config', requireAdmin, (req, res) => {
 });
 
 // Tableau de bord admin : méthodes, durées par groupe et emails collectés.
-app.get('/admin', requireAdmin, (req, res) => {
+app.get('/admin', requireAdmin, async (req, res) => {
   // Première installation (rien de configuré) → page de configuration.
   if (!isControllerConfigured() && !hasAdminPassword()) {
     const token = req.query.token ? '?token=' + encodeURIComponent(req.query.token) : '';
     return res.redirect('/admin/config' + token);
   }
+
+  const guests = allGuests();
+
+  // Sépare les connexions actives (autorisées maintenant sur le contrôleur) de
+  // l'historique. activeMacs == null => contrôleur non supporté (ex. Omada).
+  let activeMacs = null;
+  let activeError = null;
+  try {
+    activeMacs = await activeGuestMacs();
+  } catch (err) {
+    console.error('Lecture des invités actifs échouée :', err.message);
+    activeError = err.message;
+  }
+
+  const norm = (m) => (m || '').toLowerCase();
+  let activeGuests = [];
+  let pastGuests = guests;
+  if (activeMacs) {
+    const activeSet = new Set(activeMacs.map(norm));
+    const seen = new Set();
+    activeGuests = [];
+    pastGuests = [];
+    for (const g of guests) { // déjà triés du plus récent au plus ancien
+      const m = norm(g.mac);
+      if (g.mac && activeSet.has(m) && !seen.has(m)) {
+        seen.add(m);
+        activeGuests.push(g); // ligne la plus récente pour ce MAC actif
+      } else {
+        pastGuests.push(g);
+      }
+    }
+  }
+
   res.render('admin', {
-    config, stats: guestStats(), guests: allGuests(), methods: listMethods(),
+    config, stats: guestStats(), guests,
+    activeGuests, pastGuests,
+    activeSupported: activeMacs !== null, activeError,
+    methods: listMethods(),
     groupRules: listRules(), groupProviderIds, authMinutes: config.authMinutes,
     localUsers: listUsers(),
     saved: req.query.saved === '1',
