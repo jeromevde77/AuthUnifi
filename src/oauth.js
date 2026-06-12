@@ -30,7 +30,9 @@ export function verifyState(state) {
 
 const USERINFO_MAP = {
   smartschool: (j) => ({
-    email: j.email || null,
+    // Beaucoup de comptes SmartSchool (élèves) n'ont pas d'email : on retombe sur
+    // le nom d'utilisateur comme identifiant pour ne pas bloquer la connexion.
+    email: j.email || j.username || null,
     name: j.fullname || [j.name, j.surname].filter(Boolean).join(' ').trim() || null,
   }),
   // Google et Microsoft (OIDC) renvoient des champs standard.
@@ -139,6 +141,13 @@ export async function handleCallback(provider, code, withGroups = false) {
   const info = await fetchUserinfo(provider, accessToken);
   const map = USERINFO_MAP[provider.id] || ((j) => ({ email: j.email || null, name: j.name || null }));
   const { email, name } = map(info);
+
+  // Diagnostic : sans identifiant exploitable on ne peut pas enregistrer l'invité.
+  if (!email) {
+    console.error(
+      `Profil ${provider.id} sans email/identifiant. Champs reçus : ${Object.keys(info).join(', ')}`
+    );
+  }
 
   let groups = [];
   if (withGroups) {
