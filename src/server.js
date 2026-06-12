@@ -2,7 +2,14 @@ import express from 'express';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { config } from './config.js';
+import {
+  config, reloadConfig, setConfig, isOverridden, isControllerConfigured,
+  SETTINGS_SCHEMA, configValue, isSecretSet,
+} from './config.js';
+import {
+  hasAdminPassword, setAdminPassword, verifyAdminPassword,
+  issueSession, clearSession, hasValidSession,
+} from './adminauth.js';
 import { recordGuest, allGuests, guestStats } from './db.js';
 import { authorizeClient, unauthorizeClient, unauthorizeAllClients, extractParams } from './controller.js';
 import { signState, verifyState, buildAuthorizeUrl, handleCallback } from './oauth.js';
@@ -170,18 +177,28 @@ app.get('/auth/:provider/callback', async (req, res) => {
   }
 });
 
-// Protège les routes admin : Basic Auth (admin:ADMIN_TOKEN) ou ?token=ADMIN_TOKEN.
+// Protège les routes admin. Ordre :
+//  1) session par cookie (login par mot de passe) ;
+//  2) break-glass : ADMIN_TOKEN du .env (Basic Auth ou ?token=) — toujours valable ;
+//  3) première installation : si aucun mot de passe admin ET aucun ADMIN_TOKEN,
+//     l'admin est ouvert le temps de définir un mot de passe (puis verrouillé).
+// Sinon : redirection vers la page de login.
 function requireAdmin(req, res, next) {
-  if (!config.adminToken) {
-    return res.status(503).send('Admin désactivé : définissez ADMIN_TOKEN.');
-  }
-  if (req.query.token === config.adminToken || req.body.token === config.adminToken) return next();
+  if (hasValidSession(req)) return next();
 
-  const [scheme, encoded] = (req.headers.authorization || '').split(' ');
-  if (scheme === 'Basic' && encoded) {
-    const [user, pass] = Buffer.from(encoded, 'base64').toString().split(':');
-    if (user === config.adminUser && pass === config.adminToken) return next();
+  if (config.adminToken) {
+    if (req.query.token === config.adminToken || req.body.token === config.adminToken) return next();
+    const [scheme, encoded] = (req.headers.authorization || '').split(' ');
+    if (scheme === 'Basic' && encoded) {
+      const [user, pass] = Buffer.from(encoded, 'base64').toString().split(':');
+      if (user === config.adminUser && pass === config.adminToken) return next();
+    }
   }
+
+  if (!hasAdminPassword() && !config.adminToken) return next();
+
+  // Mot de passe défini → page de login. Sinon (token only) → challenge Basic Auth.
+  if (hasAdminPassword()) return res.redirect('/admin/login');
   res.set('WWW-Authenticate', 'Basic realm="AuthUnifi Admin"');
   return res.status(401).send('Authentification requise');
 }
@@ -196,8 +213,79 @@ function adminRedirect(req, res, params = {}) {
   res.redirect('/admin' + (s ? '?' + s : ''));
 }
 
+// --- Login / logout admin ---------------------------------------------------
+
+app.get('/admin/login', (req, res) => {
+  if (hasValidSession(req)) return res.redirect('/admin');
+  if (!hasAdminPassword()) {
+    // Pas encore de mot de passe : on laisse l'accès actuel (token/ouvert) gérer.
+    return res.redirect('/admin');
+  }
+  res.render('login-admin', { config, error: null });
+});
+
+app.post('/admin/login', (req, res) => {
+  if (verifyAdminPassword(req.body.password)) {
+    issueSession(req, res);
+    return res.redirect('/admin');
+  }
+  res.status(401).render('login-admin', { config, error: 'Mot de passe incorrect.' });
+});
+
+app.get('/admin/logout', (req, res) => {
+  clearSession(res);
+  res.redirect('/admin/login');
+});
+
+// --- Configuration (réglages en base ; sert aussi de wizard au 1er lancement) -
+
+function configView() {
+  const groups = {};
+  for (const s of SETTINGS_SCHEMA) {
+    (groups[s.group] ||= []).push({
+      ...s,
+      value: configValue(s.key),
+      isSet: s.secret ? isSecretSet(s.key) : undefined,
+      overridden: isOverridden(s.key),
+    });
+  }
+  return groups;
+}
+
+app.get('/admin/config', requireAdmin, (req, res) => {
+  res.render('config', {
+    config, groups: configView(), token: req.query.token || '',
+    saved: req.query.saved === '1',
+    hasPassword: hasAdminPassword(),
+    configured: isControllerConfigured(),
+  });
+});
+
+app.post('/admin/config', requireAdmin, (req, res) => {
+  for (const s of SETTINGS_SCHEMA) {
+    const v = req.body[s.key];
+    if (v === undefined) continue;
+    // Un secret laissé vide n'écrase pas la valeur existante.
+    if (s.secret && v === '') continue;
+    setConfig(s.key, v);
+  }
+  // Définition / changement du mot de passe admin (optionnel).
+  if (req.body.admin_password) {
+    setAdminPassword(req.body.admin_password);
+    issueSession(req, res); // ouvre une session pour ne pas se verrouiller
+  }
+  reloadConfig();
+  const token = req.body.token || req.query.token;
+  res.redirect('/admin/config?saved=1' + (token ? '&token=' + encodeURIComponent(token) : ''));
+});
+
 // Tableau de bord admin : méthodes, durées par groupe et emails collectés.
 app.get('/admin', requireAdmin, (req, res) => {
+  // Première installation (rien de configuré) → page de configuration.
+  if (!isControllerConfigured() && !hasAdminPassword()) {
+    const token = req.query.token ? '?token=' + encodeURIComponent(req.query.token) : '';
+    return res.redirect('/admin/config' + token);
+  }
   res.render('admin', {
     config, stats: guestStats(), guests: allGuests(), methods: listMethods(),
     groupRules: listRules(), groupProviderIds, authMinutes: config.authMinutes,
@@ -206,6 +294,7 @@ app.get('/admin', requireAdmin, (req, res) => {
     kicked: req.query.kicked || null,
     kickError: req.query.kick_error || null,
     token: req.query.token || '',
+    hasPassword: hasAdminPassword(),
   });
 });
 

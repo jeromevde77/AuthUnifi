@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Configuration — <%= config.portalName %></title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body class="admin">
+  <main class="admin-wrap">
+    <header class="admin-head">
+      <h1>Configuration</h1>
+      <div>
+        <a class="btn" href="/admin<%= token ? '?token=' + token : '' %>">← Admin</a>
+        <% if (hasPassword) { %><a class="btn" href="/admin/logout">Déconnexion</a><% } %>
+      </div>
+    </header>
+
+    <% if (saved) { %><p class="saved">✓ Configuration enregistrée.</p><% } %>
+    <% if (!configured) { %>
+      <p class="error">Le contrôleur n'est pas encore configuré : renseignez la section ci-dessous pour activer l'autorisation des invités.</p>
+    <% } %>
+
+    <%
+      const groupTitles = {
+        controller: 'Contrôleur', unifi: 'UniFi', omada: 'Omada', portal: 'Portail',
+        smartschool: 'SmartSchool (OAuth)', google: 'Google (OAuth)', microsoft: 'Microsoft 365 (OAuth)',
+      };
+    %>
+
+    <form method="POST" action="/admin/config">
+      <input type="hidden" name="token" value="<%= token %>" />
+
+      <% Object.keys(groups).forEach((g) => { %>
+        <section class="panel">
+          <h2><%= groupTitles[g] || g %></h2>
+          <% groups[g].forEach((f) => { %>
+            <label class="cfg-row">
+              <span class="cfg-label"><%= f.label %>
+                <% if (!f.overridden && f.value) { %><span class="cfg-note">(.env)</span><% } %>
+              </span>
+              <% if (f.type === 'bool') { %>
+                <select name="<%= f.key %>">
+                  <option value="true" <%= String(f.value) === 'true' ? 'selected' : '' %>>Oui</option>
+                  <option value="false" <%= String(f.value) !== 'true' ? 'selected' : '' %>>Non</option>
+                </select>
+              <% } else if (f.type === 'select') { %>
+                <select name="<%= f.key %>">
+                  <% f.options.forEach((o) => { %>
+                    <option value="<%= o %>" <%= String(f.value) === o ? 'selected' : '' %>><%= o %></option>
+                  <% }) %>
+                </select>
+              <% } else if (f.secret) { %>
+                <input type="password" name="<%= f.key %>" autocomplete="new-password"
+                       placeholder="<%= f.isSet ? '•••••• (défini — laisser vide pour garder)' : 'non défini' %>" />
+              <% } else { %>
+                <input type="<%= f.type === 'number' ? 'number' : 'text' %>" name="<%= f.key %>"
+                       value="<%= f.value %>" />
+              <% } %>
+            </label>
+          <% }) %>
+        </section>
+      <% }) %>
+
+      <section class="panel">
+        <h2>Mot de passe administrateur</h2>
+        <p class="panel-hint">
+          <% if (hasPassword) { %>
+            Un mot de passe est défini. Laissez vide pour le conserver, ou saisissez-en un nouveau.
+          <% } else { %>
+            Définissez un mot de passe pour sécuriser l'accès admin (remplace l'accès par jeton). Min. 6 caractères.
+          <% } %>
+        </p>
+        <label class="cfg-row">
+          <span class="cfg-label">Nouveau mot de passe</span>
+          <input type="password" name="admin_password" autocomplete="new-password"
+                 minlength="6" placeholder="<%= hasPassword ? 'inchangé' : 'à définir' %>" />
+        </label>
+      </section>
+
+      <button type="submit">Enregistrer</button>
+    </form>
+  </main>
+</body>
+</html>

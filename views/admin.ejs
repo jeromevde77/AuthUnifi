@@ -10,7 +10,11 @@
   <main class="admin-wrap">
     <header class="admin-head">
       <h1>Invités collectés</h1>
-      <a class="btn" href="/admin/export.csv">⬇ Export CSV</a>
+      <div>
+        <a class="btn" href="/admin/config<%= token ? '?token=' + token : '' %>">⚙ Configuration</a>
+        <a class="btn" href="/admin/export.csv<%= token ? '?token=' + token : '' %>">⬇ Export CSV</a>
+        <% if (hasPassword) { %><a class="btn" href="/admin/logout">Déconnexion</a><% } %>
+      </div>
     </header>
 
     <div class="stats">
