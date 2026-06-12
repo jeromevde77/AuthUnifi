@@ -16,6 +16,10 @@ function postJson(url, body, extraHeaders = {}) {
         path: u.pathname + u.search,
         method: 'POST',
         rejectUnauthorized: o.sslVerify,
+        // Les contrôleurs Omada renvoient une réponse HTTP non conforme (à la fois
+        // Content-Length et Transfer-Encoding) que le parser strict de Node rejette.
+        // On tolère ce parsing « lâche » pour pouvoir lire la réponse du contrôleur.
+        insecureHTTPParser: true,
         headers: {
           'Content-Type': 'application/json',
           Accept: 'application/json',
