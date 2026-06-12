@@ -1,6 +1,10 @@
 services:
   portal:
-    build: .
+    # Image multi-arch (amd64 + arm64) publiée sur GHCR à chaque push sur main.
+    # Déploiement : `docker compose pull && docker compose up -d` (pas de build local).
+    # Pour construire localement à la place, commentez `image:` et décommentez `build`.
+    image: ghcr.io/jeromevde77/authunifi:latest
+    # build: .
     restart: unless-stopped
     env_file: .env
     ports:

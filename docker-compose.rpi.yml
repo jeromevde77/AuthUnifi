@@ -6,13 +6,19 @@
 #  conteneur, donc l'écriture dans ./data fonctionne. En cas d'erreur de
 #  permission : sudo chown -R 1000:1000 data)
 #
-# Lancer :
-#     docker compose -f docker-compose.rpi.yml up -d --build
+# Lancer (pull + démarrage, sans build local) :
+#     docker compose -f docker-compose.rpi.yml pull
+#     docker compose -f docker-compose.rpi.yml up -d
 # (ou renommez ce fichier en docker-compose.yml pour pouvoir omettre le -f)
+#
+# L'image est multi-arch (amd64 + arm64), construite par GitHub Actions et tirée
+# depuis ghcr.io. Pour construire localement à la place, commentez `image:` et
+# décommentez `build`.
 
 services:
   portal:
-    build: .
+    image: ghcr.io/jeromevde77/authunifi:latest
+    # build: .
     restart: unless-stopped
     env_file: .env
     ports:

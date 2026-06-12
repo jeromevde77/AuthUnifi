@@ -191,8 +191,14 @@ Prérequis côté Omada :
 
 ```bash
 cp .env.example .env   # éditez la config
-docker compose up -d --build
+docker compose pull     # tire l'image multi-arch publiée sur ghcr.io
+docker compose up -d
 ```
+
+L'image est construite par GitHub Actions et publiée sur `ghcr.io` (pas de build
+local). Pour mettre à jour : `docker compose pull && docker compose up -d`. Pour
+construire localement à la place, commentez `image:` et décommentez `build:` dans
+`docker-compose.yml`.
 
 La base SQLite est conservée dans le volume `portal-data`. Le portail écoute sur le
 port 3000 (modifiable dans `docker-compose.yml`).
