@@ -84,9 +84,14 @@ ADMIN_TOKEN=un-secret-long-et-aleatoire
 
 ```bash
 mkdir -p data
-docker compose -f docker-compose.rpi.yml up -d --build
+docker compose -f docker-compose.rpi.yml pull
+docker compose -f docker-compose.rpi.yml up -d
 ```
-Le build se fait sur le Pi (quelques minutes la première fois).
+L'image multi-arch (arm64) est tirée depuis ghcr.io — rien n'est compilé sur le Pi.
+
+> Prérequis : le package GHCR `authunifi` doit être **public** (GitHub → Packages →
+> authunifi → Package settings → Public), sinon faites `docker login ghcr.io` sur
+> le Pi avant le `pull`.
 
 Vérifiez : `docker compose -f docker-compose.rpi.yml ps` → le conteneur tourne.
 
@@ -190,19 +195,23 @@ dossier (copie, `rsync`, ou une tâche cron). Sauvegardez aussi le `.env`.
 
 ```bash
 cd authunifi
-git pull
 # HTTP simple :
-docker compose -f docker-compose.rpi.yml up -d --build
+docker compose -f docker-compose.rpi.yml pull
+docker compose -f docker-compose.rpi.yml up -d
 # ou, en HTTPS (Caddy + OVH, §11) :
-docker compose -f docker-compose.rpi-https.yml up -d --build
+docker compose -f docker-compose.rpi-https.yml pull
+docker compose -f docker-compose.rpi-https.yml up -d
 ```
-La base SQLite (`./data`) et sa migration automatique sont conservées.
+On tire la nouvelle image depuis ghcr.io (publiée par GitHub Actions à chaque push
+sur `main`) — pas de build sur le Pi. La base SQLite (`./data`) et sa migration
+automatique sont conservées.
 
 > **Passage de HTTP à HTTPS** : arrêtez d'abord l'ancien stack pour libérer le
 > port 80, puis lancez le nouveau :
 > ```bash
 > docker compose -f docker-compose.rpi.yml down
-> docker compose -f docker-compose.rpi-https.yml up -d --build
+> docker compose -f docker-compose.rpi-https.yml pull
+> docker compose -f docker-compose.rpi-https.yml up -d
 > ```
 
 ---

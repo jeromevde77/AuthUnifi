@@ -27,7 +27,7 @@ Microsoft / SmartSchool group membership → custom duration).
 - `views/` — EJS pages. `public/styles.css` — UI.
 
 **Run:** `cp .env.example .env` (fill controller + Facebook + admin token), then
-`npm install && npm start` (or `docker compose up -d --build`).
+`npm install && npm start` (or `docker compose pull && docker compose up -d`).
 
 **Docs:** `README.md` (full config), `SYNOLOGY.md`, `RASPBERRYPI.md` (deployment).
 
