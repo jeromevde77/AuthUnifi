@@ -60,6 +60,7 @@ async function finishLogin(res, { params, email, name, method, liked, minutes, o
   }
   try {
     await authorizeClient(params, minutes);
+    console.log(`Invité autorisé (méthode=${method}) — redirectUrl du contrôleur : ${params.redirectUrl || '(aucun)'}`);
     res.render('success', { config, authorized: true, redirectUrl: params.redirectUrl });
   } catch (err) {
     console.error("Échec de l'autorisation du contrôleur :", err.message);

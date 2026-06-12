@@ -5,8 +5,20 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title><%= config.portalName %></title>
   <link rel="stylesheet" href="/static/styles.css" />
-  <% if (authorized && redirectUrl) { %>
-    <meta http-equiv="refresh" content="3;url=<%= redirectUrl %>" />
+  <% if (authorized) {
+       // Sur un réseau invité isolé, le portail (sur le LAN) n'est plus joignable
+       // une fois l'invité autorisé. On renvoie donc vers une URL Internet EXTERNE
+       // pour que le navigateur captif détecte l'accès et se ferme tout seul.
+       // On réutilise le redirectUrl du contrôleur seulement s'il est externe (et
+       // pas une adresse LAN/privée), sinon on retombe sur un check de connectivité.
+       const isExternal = (u) =>
+         /^https?:\/\//i.test(u) &&
+         !/^https?:\/\/(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|127\.|localhost)/i.test(u);
+       const target = isExternal(redirectUrl)
+         ? redirectUrl
+         : 'http://connectivitycheck.gstatic.com/generate_204';
+  %>
+    <meta http-equiv="refresh" content="1;url=<%= target %>" />
   <% } %>
 </head>
 <body>
@@ -14,12 +26,8 @@
     <div class="check">✓</div>
     <% if (authorized) { %>
       <h1>Vous êtes connecté !</h1>
-      <p class="subtitle">Merci. Votre accès à Internet est maintenant actif.</p>
-      <% if (redirectUrl) { %>
-        <p class="subtitle">Redirection en cours…
-          <a href="<%= redirectUrl %>">Continuer</a>
-        </p>
-      <% } %>
+      <p class="subtitle">Votre accès à Internet est maintenant actif. Vous pouvez
+        fermer cette fenêtre.</p>
     <% } else { %>
       <h1>Merci !</h1>
       <p class="subtitle">Vos informations ont bien été enregistrées.</p>
