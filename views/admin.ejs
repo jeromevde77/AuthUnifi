@@ -136,45 +136,62 @@
           <button type="submit" class="link-danger">⎋ Déconnecter tout le monde</button>
         </form>
       <% } %>
-      <table>
-        <thead>
-          <tr>
-            <th>#</th><th>Email</th><th>Nom</th><th>Méthode</th><th>MAC</th><th>Liké</th><th>Date</th><th></th>
-          </tr>
-        </thead>
-        <tbody>
-          <% if (guests.length === 0) { %>
-            <tr><td colspan="8" class="empty">Aucun invité enregistré pour l'instant.</td></tr>
-          <% } %>
-          <% guests.forEach((g) => { %>
+      <%
+        const labels = {
+          email: '✉️ Email', local: '🔑 Compte', smartschool: '🎓 SmartSchool',
+          google: 'Ⓖ Google', microsoft: 'Ⓜ Microsoft 365',
+        };
+      %>
+
+      <% if (!activeSupported) { %>
+        <p class="panel-hint">Statut « actif » indisponible pour ce contrôleur : tous les invités sont listés ensemble.</p>
+      <% } else if (activeError) { %>
+        <p class="error">Impossible de lire l'état du contrôleur (<%= activeError %>). Affichage de la liste complète.</p>
+      <% } %>
+
+      <%
+        const sections = (activeSupported && !activeError)
+          ? [ { title: 'Connexions actives', rows: activeGuests, empty: 'Aucun invité actuellement autorisé.' },
+              { title: 'Historique', rows: pastGuests, empty: 'Aucune connexion passée.' } ]
+          : [ { title: 'Invités collectés', rows: guests, empty: "Aucun invité enregistré pour l'instant." } ];
+      %>
+
+      <% sections.forEach((sec) => { %>
+        <h2 class="table-title"><%= sec.title %> (<%= sec.rows.length %>)</h2>
+        <table>
+          <thead>
             <tr>
-              <td><%= g.id %></td>
-              <td><%= g.email || '—' %></td>
-              <td><%= g.name || '—' %></td>
-              <%
-                const labels = {
-                  email: '✉️ Email', local: '🔑 Compte', smartschool: '🎓 SmartSchool',
-                  google: 'Ⓖ Google', microsoft: 'Ⓜ Microsoft 365',
-                };
-              %>
-              <td><%= labels[g.method] || g.method %></td>
-              <td class="mono"><%= g.mac || '—' %></td>
-              <td><%= g.liked ? '✓' : '—' %></td>
-              <td class="mono"><%= g.created_at %></td>
-              <td>
-                <% if (g.mac) { %>
-                <form method="POST" action="/admin/guests/unauthorize" style="margin:0"
-                      onsubmit="return confirm('Déconnecter <%= g.mac %>
-          <input type="hidden" name="token" value="<%= token %>" /> ?')">
-                  <input type="hidden" name="mac" value="<%= g.mac %>" />
-                  <button type="submit" class="link-danger">Déconnecter</button>
-                </form>
-                <% } %>
-              </td>
+              <th>#</th><th>Email</th><th>Nom</th><th>Méthode</th><th>MAC</th><th>Liké</th><th>Date</th><th></th>
             </tr>
-          <% }) %>
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            <% if (sec.rows.length === 0) { %>
+              <tr><td colspan="8" class="empty"><%= sec.empty %></td></tr>
+            <% } %>
+            <% sec.rows.forEach((g) => { %>
+              <tr>
+                <td><%= g.id %></td>
+                <td><%= g.email || '—' %></td>
+                <td><%= g.name || '—' %></td>
+                <td><%= labels[g.method] || g.method %></td>
+                <td class="mono"><%= g.mac || '—' %></td>
+                <td><%= g.liked ? '✓' : '—' %></td>
+                <td class="mono"><%= g.created_at %></td>
+                <td>
+                  <% if (g.mac) { %>
+                  <form method="POST" action="/admin/guests/unauthorize" style="margin:0"
+                        onsubmit="return confirm('Déconnecter <%= g.mac %> ?')">
+                    <input type="hidden" name="token" value="<%= token %>" />
+                    <input type="hidden" name="mac" value="<%= g.mac %>" />
+                    <button type="submit" class="link-danger">Déconnecter</button>
+                  </form>
+                  <% } %>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      <% }) %>
     </div>
   </main>
 </body>

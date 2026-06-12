@@ -55,10 +55,36 @@ export async function unauthorize(mac) {
 }
 
 /**
- * Dé-autorise TOUS les invités actuellement autorisés (déconnexion globale).
+ * Liste les MAC des invités actuellement autorisés (autorisation non expirée).
  *
- * @returns {Promise<{total:number, ok:number, failed:number}>}
+ * @returns {Promise<string[]>} MAC en minuscules
  */
+export async function activeGuests() {
+  const controller = new Controller({
+    host: config.unifi.host,
+    port: config.unifi.port,
+    username: config.unifi.username,
+    password: config.unifi.password,
+    site: config.unifi.site,
+    sslverify: config.unifi.sslverify,
+  });
+
+  await controller.login();
+  try {
+    const guests = await controller.getGuests();
+    const nowMs = Date.now();
+    const toMs = (t) => (t > 1e12 ? t : t * 1000); // l'API peut renvoyer des s ou des ms
+    return [...new Set(
+      (guests || [])
+        .filter((g) => g.end && toMs(g.end) > nowMs) // autorisation encore valide
+        .map((g) => (g.mac || '').toLowerCase())
+        .filter(Boolean)
+    )];
+  } finally {
+    await controller.logout().catch(() => {});
+  }
+}
+
 export async function unauthorizeAll() {
   const controller = new Controller({
     host: config.unifi.host,
