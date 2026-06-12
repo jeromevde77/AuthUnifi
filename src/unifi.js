@@ -46,6 +46,9 @@ export async function unauthorize(mac) {
   await controller.login();
   try {
     await controller.unauthorizeGuest(mac);
+    // Kick immédiat (kick-sta) : force la déconnexion WiFi sans attendre.
+    // Best-effort : si l'appareil n'est plus connecté, on ignore l'échec.
+    await controller.reconnectClient(mac).catch(() => {});
   } finally {
     await controller.logout().catch(() => {});
   }
@@ -75,6 +78,7 @@ export async function unauthorizeAll() {
     for (const mac of macs) {
       try {
         await controller.unauthorizeGuest(mac);
+        await controller.reconnectClient(mac).catch(() => {}); // kick immédiat best-effort
         ok += 1;
       } catch {
         failed += 1;
