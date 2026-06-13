@@ -24,7 +24,8 @@
     <%
       const groupTitles = {
         controller: 'Contrôleur', unifi: 'UniFi', omada: 'Omada', portal: 'Portail',
-        smartschool: 'SmartSchool (OAuth)', google: 'Google (OAuth)', microsoft: 'Microsoft 365 (OAuth)',
+        appearance: 'Apparence', smartschool: 'SmartSchool (OAuth)', google: 'Google (OAuth)',
+        microsoft: 'Microsoft 365 (OAuth)',
       };
     %>
 
@@ -38,6 +39,7 @@
             <label class="cfg-row">
               <span class="cfg-label"><%= f.label %>
                 <% if (!f.overridden && f.value) { %><span class="cfg-note">(.env)</span><% } %>
+                <% if (f.hint) { %><span class="cfg-hint"><%= f.hint %></span><% } %>
               </span>
               <% if (f.type === 'bool') { %>
                 <select name="<%= f.key %>">
@@ -50,6 +52,10 @@
                     <option value="<%= o %>" <%= String(f.value) === o ? 'selected' : '' %>><%= o %></option>
                   <% }) %>
                 </select>
+              <% } else if (f.type === 'color') { %>
+                <input type="color" name="<%= f.key %>" value="<%= f.value || '#1877f2' %>" />
+              <% } else if (f.type === 'textarea') { %>
+                <textarea name="<%= f.key %>" rows="5"><%= f.value %></textarea>
               <% } else if (f.secret) { %>
                 <input type="password" name="<%= f.key %>" autocomplete="new-password"
                        placeholder="<%= f.isSet ? '•••••• (défini — laisser vide pour garder)' : 'non défini' %>" />
