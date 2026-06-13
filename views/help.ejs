@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mode d'emploi — <%= config.portalName %></title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body class="admin">
+  <main class="admin-wrap">
+    <header class="admin-head">
+      <h1>Mode d'emploi</h1>
+      <div>
+        <a class="btn" href="/admin<%= token ? '?token=' + token : '' %>">← Admin</a>
+        <a class="btn" href="/admin/config<%= token ? '?token=' + token : '' %>">⚙ Configuration</a>
+        <% if (hasPassword) { %><a class="btn" href="/admin/logout">Déconnexion</a><% } %>
+      </div>
+    </header>
+
+    <section class="panel help">
+      <h2>1. Comment ça marche</h2>
+      <p>Un invité se connecte au WiFi, le contrôleur le redirige vers ce portail, il
+        s'authentifie (email, compte, ou OAuth), et le portail l'autorise sur le
+        contrôleur pour une durée donnée.</p>
+    </section>
+
+    <section class="panel help">
+      <h2>2. Configurer le contrôleur</h2>
+      <p>Tout se règle dans <a href="/admin/config<%= token ? '?token=' + token : '' %>">⚙ Configuration</a>
+        (assistant pas-à-pas). Choisissez le type de contrôleur puis remplissez le bloc correspondant.</p>
+      <h3>UniFi</h3>
+      <ul>
+        <li>Créez un <strong>Guest Hotspot</strong> en mode <strong>External Portal Server</strong>
+          pointant vers l'adresse de ce portail.</li>
+        <li>Renseignez hôte, port (8443), utilisateur, mot de passe et site dans la config.</li>
+      </ul>
+      <h3>Omada</h3>
+      <ul>
+        <li>Créez un <strong>compte opérateur</strong> dans <em>Hotspot Manager</em>
+          (≠ compte admin) → champs « Opérateur ».</li>
+        <li><strong>Controller ID</strong> = la longue chaîne dans l'URL de l'interface Omada.</li>
+        <li>Settings → Authentication → Portal : <strong>External Portal Server</strong>,
+          URL de ce portail.</li>
+      </ul>
+      <h3>Liste « pre-authentication » (walled garden)</h3>
+      <p>Sur le contrôleur, autorisez l'accès <strong>avant connexion</strong> à :
+        l'adresse de ce portail, puis selon les méthodes activées les domaines
+        Facebook (<span class="mono">*.facebook.com</span>, <span class="mono">*.fbcdn.net</span>),
+        Google (<span class="mono">accounts.google.com</span>, <span class="mono">*.googleapis.com</span>),
+        Microsoft (<span class="mono">login.microsoftonline.com</span>, <span class="mono">*.msftauth.net</span>),
+        SmartSchool (<span class="mono">*.smartschool.be</span>). Sinon le like et les
+        redirections OAuth sont bloqués.</p>
+    </section>
+
+    <section class="panel help">
+      <h2>3. Méthodes de connexion</h2>
+      <ul>
+        <li><strong>Email + like Facebook</strong> : renseignez l'URL de la page Facebook
+          dans la config ; activez la méthode dans l'admin.</li>
+        <li><strong>Compte local</strong> : créez des comptes (email + mot de passe) dans
+          l'admin, chacun avec sa propre durée d'accès.</li>
+        <li><strong>OAuth</strong> (SmartSchool / Google / Microsoft) : déclarez l'application
+          chez le fournisseur, copiez Client ID / Secret dans la config, et indiquez comme
+          <strong>Redirect URI</strong> : <span class="mono">https://&lt;votre-portail&gt;/auth/&lt;fournisseur&gt;/callback</span>.</li>
+      </ul>
+      <p>Activez/désactivez chaque méthode depuis le tableau « Méthodes de connexion » de l'admin.</p>
+    </section>
+
+    <section class="panel help">
+      <h2>4. Durées d'accès</h2>
+      <ul>
+        <li><strong>Par défaut</strong> : réglable dans la config (« Durée d'accès »).</li>
+        <li><strong>Par groupe</strong> (OAuth) : ajoutez des règles dans l'admin
+          (la plus longue durée l'emporte).</li>
+        <li><strong>Comptes locaux</strong> : durée propre à chaque compte.</li>
+      </ul>
+    </section>
+
+    <section class="panel help">
+      <h2>5. Apparence</h2>
+      <p>Dans la config (groupe <em>Apparence</em>) : titre et message d'accueil, couleur
+        principale, couleur ou image de fond, et CSS personnalisé pour aller plus loin.</p>
+    </section>
+
+    <section class="panel help">
+      <h2>6. Déploiement & mises à jour</h2>
+      <p>Le portail tourne en Docker à partir de l'image publiée sur ghcr.io. Pour mettre à jour :</p>
+      <pre class="mono">docker compose pull
+docker compose up -d</pre>
+      <p>(adaptez avec <span class="mono">-f docker-compose.rpi-https.yml</span> selon votre déploiement).</p>
+    </section>
+
+    <section class="panel help">
+      <h2>7. Sauvegarde</h2>
+      <p>Toutes les données (emails, réglages, comptes, règles) sont dans
+        <span class="mono">data/portal.db</span>. Sauvegardez ce fichier (et votre
+        <span class="mono">.env</span>) régulièrement.</p>
+    </section>
+  </main>
+</body>
+</html>

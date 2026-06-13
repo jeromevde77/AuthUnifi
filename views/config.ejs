@@ -12,6 +12,7 @@
       <h1>Configuration</h1>
       <div>
         <a class="btn" href="/admin<%= token ? '?token=' + token : '' %>">← Admin</a>
+        <a class="btn" href="/admin/help<%= token ? '?token=' + token : '' %>">📘 Mode d'emploi</a>
         <% if (hasPassword) { %><a class="btn" href="/admin/logout">Déconnexion</a><% } %>
       </div>
     </header>

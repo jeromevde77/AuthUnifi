@@ -291,3 +291,11 @@ tr:last-child td { border-bottom: none; }
 .wiz-nav button { width: auto; padding: 11px 20px; }
 .btn-secondary { background: #e4e6eb; color: var(--text); }
 .btn-secondary:hover { background: #d8dadf; }
+
+/* --- Page mode d'emploi --- */
+.help h2 { font-size: 17px; margin: 0 0 10px; }
+.help h3 { font-size: 14px; margin: 16px 0 6px; }
+.help p, .help li { font-size: 14px; line-height: 1.5; color: var(--text); }
+.help ul { margin: 6px 0; padding-left: 20px; }
+.help a { color: var(--primary); }
+.help pre { background: #f7f8fa; border-radius: 8px; padding: 12px; overflow-x: auto; font-size: 13px; }
