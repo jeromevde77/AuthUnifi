@@ -12,6 +12,7 @@
       <h1>Invités collectés</h1>
       <div>
         <a class="btn" href="/admin/config<%= token ? '?token=' + token : '' %>">⚙ Configuration</a>
+        <a class="btn" href="/admin/help<%= token ? '?token=' + token : '' %>">📘 Mode d'emploi</a>
         <a class="btn" href="/admin/export.csv<%= token ? '?token=' + token : '' %>">⬇ Export CSV</a>
         <% if (hasPassword) { %><a class="btn" href="/admin/logout">Déconnexion</a><% } %>
       </div>
@@ -87,8 +88,13 @@
     <section class="panel">
       <h2>Durées d'accès par groupe</h2>
       <p class="panel-hint">
-        Durée (en minutes) selon l'appartenance à un groupe (Google / Microsoft / SmartSchool).
+        Durée (en minutes) selon l'appartenance à un groupe, pour les connexions
+        <strong>OAuth</strong> :
+        <strong>SmartSchool</strong> = nom de la classe/du groupe,
+        <strong>Google</strong> = email du groupe,
+        <strong>Microsoft</strong> = nom ou GUID du groupe.
         La plus longue durée l'emporte ; sinon la durée par défaut (<%= authMinutes %> min) s'applique.
+        Les <strong>comptes locaux</strong> ont chacun leur propre durée (section ci-dessus).
       </p>
 
       <table class="rules-table">

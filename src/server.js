@@ -253,6 +253,11 @@ function configView() {
   return groups;
 }
 
+// Mode d'emploi (instructions de configuration et de déploiement).
+app.get('/admin/help', requireAdmin, (req, res) => {
+  res.render('help', { config, token: req.query.token || '', hasPassword: hasAdminPassword() });
+});
+
 app.get('/admin/config', requireAdmin, (req, res) => {
   res.render('config', {
     config, groups: configView(), token: req.query.token || '',
