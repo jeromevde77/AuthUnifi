@@ -29,11 +29,14 @@
       };
     %>
 
-    <form method="POST" action="/admin/config">
+    <form method="POST" action="/admin/config" id="wizard">
       <input type="hidden" name="token" value="<%= token %>" />
 
+      <div class="wiz-progress"><div class="wiz-bar" id="wizBar"></div></div>
+      <p class="wiz-counter" id="wizCounter"></p>
+
       <% Object.keys(groups).forEach((g) => { %>
-        <section class="panel">
+        <section class="panel wizard-step" data-group="<%= g %>">
           <h2><%= groupTitles[g] || g %></h2>
           <% groups[g].forEach((f) => { %>
             <label class="cfg-row">
@@ -68,7 +71,7 @@
         </section>
       <% }) %>
 
-      <section class="panel">
+      <section class="panel wizard-step" data-group="admin">
         <h2>Mot de passe administrateur</h2>
         <p class="panel-hint">
           <% if (hasPassword) { %>
@@ -84,8 +87,54 @@
         </label>
       </section>
 
-      <button type="submit">Enregistrer</button>
+      <div class="wiz-nav">
+        <button type="button" class="btn-secondary" id="wizPrev">← Précédent</button>
+        <button type="button" id="wizNext">Suivant →</button>
+        <button type="submit" id="wizSave">Enregistrer</button>
+      </div>
     </form>
   </main>
+
+  <script>
+    (function () {
+      const steps = Array.from(document.querySelectorAll('.wizard-step'));
+      const ctrl = document.querySelector('[name="controller_type"]');
+      const prev = document.getElementById('wizPrev');
+      const next = document.getElementById('wizNext');
+      const save = document.getElementById('wizSave');
+      const bar = document.getElementById('wizBar');
+      const counter = document.getElementById('wizCounter');
+      let i = 0;
+
+      // Étapes pertinentes : on masque le contrôleur non sélectionné (UniFi vs Omada).
+      function activeSteps() {
+        const type = ctrl ? ctrl.value : null;
+        return steps.filter((s) => {
+          const g = s.dataset.group;
+          if (g === 'unifi' && type === 'omada') return false;
+          if (g === 'omada' && type === 'unifi') return false;
+          return true;
+        });
+      }
+
+      function render() {
+        const list = activeSteps();
+        i = Math.max(0, Math.min(i, list.length - 1));
+        steps.forEach((s) => { s.style.display = 'none'; });
+        list.forEach((s, idx) => { if (idx === i) s.style.display = ''; });
+        const last = i === list.length - 1;
+        prev.style.display = i === 0 ? 'none' : '';
+        next.style.display = last ? 'none' : '';
+        save.style.display = last ? '' : 'none';
+        bar.style.width = ((i + 1) / list.length * 100) + '%';
+        counter.textContent = 'Étape ' + (i + 1) + ' / ' + list.length;
+      }
+
+      prev.addEventListener('click', function () { i -= 1; render(); });
+      next.addEventListener('click', function () { i += 1; render(); });
+      if (ctrl) ctrl.addEventListener('change', function () { i = 0; render(); });
+      render();
+    })();
+  </script>
 </body>
 </html>
