@@ -282,3 +282,12 @@ tr:last-child td { border-bottom: none; }
 }
 .cfg-row textarea { font-family: ui-monospace, monospace; resize: vertical; }
 .cfg-row input[type="color"] { flex: 0 0 56px; min-width: 56px; height: 40px; padding: 2px; cursor: pointer; }
+
+/* --- Wizard de configuration (étapes guidées) --- */
+.wiz-progress { height: 6px; background: #e4e6eb; border-radius: 4px; overflow: hidden; margin-bottom: 6px; }
+.wiz-bar { height: 100%; width: 0; background: var(--primary); transition: width 0.2s ease; }
+.wiz-counter { font-size: 13px; color: var(--muted); margin: 0 0 14px; }
+.wiz-nav { display: flex; gap: 10px; justify-content: flex-end; }
+.wiz-nav button { width: auto; padding: 11px 20px; }
+.btn-secondary { background: #e4e6eb; color: var(--text); }
+.btn-secondary:hover { background: #d8dadf; }
