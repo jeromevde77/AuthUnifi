@@ -30,6 +30,13 @@ export const SETTINGS_SCHEMA = [
   { key: 'portal_logo_url', env: 'PORTAL_LOGO_URL', def: '', group: 'portal', label: 'URL du logo' },
   { key: 'trust_proxy', env: 'TRUST_PROXY', def: '0', group: 'portal', label: 'Proxies de confiance', type: 'number' },
 
+  { key: 'portal_welcome_title', env: 'PORTAL_WELCOME_TITLE', def: '', group: 'appearance', label: "Titre d'accueil", hint: 'Par défaut : le nom du portail.' },
+  { key: 'portal_welcome_text', env: 'PORTAL_WELCOME_TEXT', def: '', group: 'appearance', label: "Message d'accueil" },
+  { key: 'portal_primary_color', env: 'PORTAL_PRIMARY_COLOR', def: '#1877f2', group: 'appearance', label: 'Couleur principale', type: 'color' },
+  { key: 'portal_bg_color', env: 'PORTAL_BG_COLOR', def: '#f0f2f5', group: 'appearance', label: 'Couleur de fond', type: 'color' },
+  { key: 'portal_bg_image_url', env: 'PORTAL_BG_IMAGE_URL', def: '', group: 'appearance', label: 'Image de fond (URL)', hint: "Recouvre la couleur de fond si renseignée." },
+  { key: 'portal_custom_css', env: 'PORTAL_CUSTOM_CSS', def: '', group: 'appearance', label: 'CSS personnalisé', type: 'textarea', hint: 'Pour les utilisateurs avancés. Injecté tel quel dans les pages du portail.' },
+
   { key: 'smartschool_client_id', env: 'SMARTSCHOOL_CLIENT_ID', def: '', group: 'smartschool', label: 'Client ID' },
   { key: 'smartschool_client_secret', env: 'SMARTSCHOOL_CLIENT_SECRET', def: '', group: 'smartschool', label: 'Client secret', secret: true },
   { key: 'smartschool_redirect_uri', env: 'SMARTSCHOOL_REDIRECT_URI', def: '', group: 'smartschool', label: 'Redirect URI' },
@@ -97,6 +104,15 @@ const asBool = (v) => v === 'true' || v === true;
 const asInt = (v, d) => {
   const n = parseInt(v, 10);
   return Number.isFinite(n) ? n : d;
+};
+
+// Assombrit une couleur hexa (#rrggbb) pour l'état survol des boutons.
+const darken = (hex, f = 0.85) => {
+  const m = /^#?([0-9a-f]{6})$/i.exec((hex || '').trim());
+  if (!m) return hex;
+  const n = parseInt(m[1], 16);
+  const c = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((x) => Math.round(x * f));
+  return `#${c.map((x) => x.toString(16).padStart(2, '0')).join('')}`;
 };
 
 const PROVIDER_DEFS = {
@@ -214,6 +230,13 @@ function buildConfig() {
 
     portalName: get('portal_name') || 'Wifi Invité',
     portalLogoUrl: get('portal_logo_url') || '',
+    portalWelcomeTitle: get('portal_welcome_title') || '',
+    portalWelcomeText: get('portal_welcome_text') || '',
+    portalPrimaryColor: get('portal_primary_color') || '#1877f2',
+    portalPrimaryColorDark: darken(get('portal_primary_color') || '#1877f2'),
+    portalBgColor: get('portal_bg_color') || '#f0f2f5',
+    portalBgImageUrl: get('portal_bg_image_url') || '',
+    portalCustomCss: get('portal_custom_css') || '',
 
     adminUser: process.env.ADMIN_USER || 'admin',
     adminToken: process.env.ADMIN_TOKEN || '',
@@ -240,6 +263,13 @@ export function reloadConfig() {
   config.facebookPageUrl = next.facebookPageUrl;
   config.portalName = next.portalName;
   config.portalLogoUrl = next.portalLogoUrl;
+  config.portalWelcomeTitle = next.portalWelcomeTitle;
+  config.portalWelcomeText = next.portalWelcomeText;
+  config.portalPrimaryColor = next.portalPrimaryColor;
+  config.portalPrimaryColorDark = next.portalPrimaryColorDark;
+  config.portalBgColor = next.portalBgColor;
+  config.portalBgImageUrl = next.portalBgImageUrl;
+  config.portalCustomCss = next.portalCustomCss;
   config.trustProxy = next.trustProxy;
   return config;
 }

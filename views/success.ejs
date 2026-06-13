@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title><%= config.portalName %></title>
   <link rel="stylesheet" href="/static/styles.css" />
+  <%- include('partials/theme') %>
   <% if (authorized) {
        // Sur un réseau invité isolé, le portail (sur le LAN) n'est plus joignable
        // une fois l'invité autorisé. On renvoie donc vers une URL Internet EXTERNE

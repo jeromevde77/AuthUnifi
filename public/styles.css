@@ -275,7 +275,10 @@ tr:last-child td { border-bottom: none; }
 .cfg-row { display: flex; align-items: center; gap: 12px; margin: 10px 0; flex-wrap: wrap; }
 .cfg-label { flex: 0 0 230px; font-size: 14px; }
 .cfg-note { color: var(--muted); font-size: 12px; font-weight: 400; }
-.cfg-row input, .cfg-row select {
+.cfg-hint { display: block; color: var(--muted); font-size: 12px; font-weight: 400; margin-top: 2px; }
+.cfg-row input, .cfg-row select, .cfg-row textarea {
   flex: 1; min-width: 220px; padding: 9px 11px;
   border: 1px solid #d0d4d9; border-radius: 8px; font-size: 14px; background: #fff;
 }
+.cfg-row textarea { font-family: ui-monospace, monospace; resize: vertical; }
+.cfg-row input[type="color"] { flex: 0 0 56px; min-width: 56px; height: 40px; padding: 2px; cursor: pointer; }

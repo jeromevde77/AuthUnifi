@@ -1,0 +1,17 @@
+<%# Thème du portail : surcharge les variables CSS depuis la config admin. %>
+<style>
+  :root {
+    --primary: <%= config.portalPrimaryColor %>;
+    --primary-dark: <%= config.portalPrimaryColorDark %>;
+    --bg: <%= config.portalBgColor %>;
+  }
+  <% if (config.portalBgImageUrl) { %>
+  body {
+    background-image: url("<%= config.portalBgImageUrl %>");
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+  }
+  <% } %>
+  <%- config.portalCustomCss %>
+</style>
